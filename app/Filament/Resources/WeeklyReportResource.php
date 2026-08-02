@@ -4,57 +4,55 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\WeeklyReportResource\Pages;
 use App\Models\WeeklyReport;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use App\Models\SubModule;
+use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class WeeklyReportResource extends Resource
 {
     protected static ?string $model = WeeklyReport::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Reports';
+
+    public static function canViewAny(): bool
+    {
+        return Auth::user()->hasRole(['super_admin', 'admin']);
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Select::make('project_id')
-                    ->relationship('project', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-                TextInput::make('report_number')
-                    ->disabled()
-                    ->dehydrated(true),
-                DatePicker::make('period_start')
-                    ->required(),
-                DatePicker::make('period_end')
-                    ->required(),
-                TextInput::make('topic')
+                Forms\Components\TextInput::make('week_number')
+                    ->required()
                     ->maxLength(255),
-                RichEditor::make('executive_summary')
+                Forms\Components\DatePicker::make('start_date')
+                    ->required(),
+                Forms\Components\DatePicker::make('end_date')
+                    ->required(),
+                Forms\Components\RichEditor::make('executive_summary')
                     ->columnSpanFull(),
-                RichEditor::make('plan_of_actions')
+                Forms\Components\RichEditor::make('plan_of_action')
                     ->columnSpanFull(),
-                Select::make('status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'published' => 'Published',
+                Forms\Components\Repeater::make('weeklyReportProgresses')
+                    ->relationship('weeklyReportProgresses')
+                    ->schema([
+                        Forms\Components\Select::make('sub_module_id')
+                            ->label('Sub Module')
+                            ->options(SubModule::pluck('name', 'id'))
+                            ->required(),
+                        Forms\Components\TextInput::make('progress_percentage')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%'),
                     ])
-                    ->required(),
-                TextInput::make('generated_pdf_path')
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->maxLength(255),
+                    ->columnSpanFull()
+                    ->columns(2),
             ]);
     }
 
@@ -62,30 +60,34 @@ class WeeklyReportResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('project.name')
-                    ->label('Project')
-                    ->sortable()
+                Tables\Columns\TextColumn::make('week_number')
                     ->searchable(),
-                TextColumn::make('report_number')
-                    ->sortable(),
-                TextColumn::make('period_start')
+                Tables\Columns\TextColumn::make('start_date')
                     ->date()
                     ->sortable(),
-                TextColumn::make('period_end')
+                Tables\Columns\TextColumn::make('end_date')
                     ->date()
                     ->sortable(),
-                TextColumn::make('status')
-                    ->badge()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                //
             ])
             ->actions([
-                EditAction::make(),
+                Tables\Actions\Action::make('view_report')
+                    ->label('View Report')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (WeeklyReport $record): string => route('weekly-reports.show', $record))
+                    ->openUrlInNewTab(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -93,19 +95,8 @@ class WeeklyReportResource extends Resource
     public static function getRelations(): array
     {
         return [
+            //
         ];
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-        $user = auth()->user();
-
-        if ($user?->role === 'lead') {
-            return $query->whereHas('project.leads', fn (Builder $leadQuery) => $leadQuery->whereKey($user->id));
-        }
-
-        return $query;
     }
 
     public static function getPages(): array

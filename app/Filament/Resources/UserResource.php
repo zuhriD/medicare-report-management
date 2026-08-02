@@ -21,7 +21,7 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
 
     public static function form(Form $form): Form
     {
@@ -30,23 +30,24 @@ class UserResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+                TextInput::make('username')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->email()
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                Select::make('team_id')
-                    ->relationship('team', 'name')
-                    ->searchable()
-                    ->preload()
+                Forms\Components\Select::make('section_id')
+                    ->relationship('section', 'name')
+                    ->label('Section')
                     ->nullable(),
-                Select::make('role')
-                    ->options([
-                        'developer' => 'Developer',
-                        'lead' => 'Lead',
-                        'admin' => 'Admin',
-                    ])
-                    ->required(),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
                 TextInput::make('password')
                     ->password()
                     ->required(fn (string $context): bool => $context === 'create')
@@ -63,13 +64,17 @@ class UserResource extends Resource
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('username')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('team.name')
-                    ->label('Team')
+                TextColumn::make('section.name')
+                    ->label('Section')
+                    ->sortable()
                     ->toggleable(),
-                TextColumn::make('role')
+                TextColumn::make('roles.name')
                     ->badge()
                     ->sortable(),
             ])

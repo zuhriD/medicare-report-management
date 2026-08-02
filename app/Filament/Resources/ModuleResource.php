@@ -3,54 +3,42 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ModuleResource\Pages;
-use App\Filament\Resources\ModuleResource\RelationManagers;
-use App\Filament\Resources\ModuleResource\RelationManagers\PlatformsRelationManager;
+use App\Filament\Resources\ModuleResource\RelationManagers\SubModulesRelationManager;
 use App\Models\Module;
 use Filament\Forms;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ModuleResource extends Resource
 {
     protected static ?string $model = Module::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Master Data';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Select::make('project_id')
-                    ->relationship('project', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-                TextInput::make('name')
+                Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('code')
-                    ->required()
-                    ->maxLength(255),
-                Select::make('status')
+                Forms\Components\Select::make('type')
                     ->options([
-                        'ongoing' => 'Ongoing',
-                        'completed' => 'Completed',
-                        'general' => 'General',
+                        'module' => 'Module',
+                        'non_module' => 'Non Module',
                     ])
-                    ->required(),
-                Select::make('phase')
+                    ->required()
+                    ->live()
+                    ->default('module'),
+                Forms\Components\Select::make('phase')
                     ->options([
                         'development' => 'Development',
                         'testing' => 'Testing',
                     ])
-                    ->required(),
+                    ->nullable()
+                    ->visible(fn (\Filament\Forms\Get $get) => $get('type') === 'module'),
             ]);
     }
 
@@ -58,24 +46,27 @@ class ModuleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('project.name')
-                    ->label('Project')
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('phase')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
                     ->sortable()
-                    ->searchable(),
-                TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('code')
-                    ->searchable(),
-                TextColumn::make('status')
-                    ->badge(),
-                TextColumn::make('phase')
-                    ->badge(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -87,7 +78,7 @@ class ModuleResource extends Resource
     public static function getRelations(): array
     {
         return [
-            PlatformsRelationManager::class,
+            SubModulesRelationManager::class,
         ];
     }
 

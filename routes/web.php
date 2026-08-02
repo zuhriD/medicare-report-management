@@ -1,13 +1,12 @@
 <?php
 
-use App\Http\Controllers\WeeklyReportExportController;
+use App\Http\Controllers\WeeklyReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin');
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/weekly-reports/{weeklyReport}/export-pdf', WeeklyReportExportController::class)
-        ->name('weekly-reports.export-pdf');
+    Route::get('/weekly-reports/{weeklyReport}', [WeeklyReportController::class, 'show'])->name('weekly-reports.show');
 });
