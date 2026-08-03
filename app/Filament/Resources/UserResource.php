@@ -47,7 +47,8 @@ class UserResource extends Resource
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->searchable(),
+                    ->searchable()
+                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'admin'])),
                 TextInput::make('password')
                     ->password()
                     ->required(fn (string $context): bool => $context === 'create')

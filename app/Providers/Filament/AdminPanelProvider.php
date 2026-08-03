@@ -33,6 +33,8 @@ class AdminPanelProvider extends PanelProvider
             // ->brandLogoHeight('2rem')
             ->favicon(asset('assets/images/medicare_logo.png'))
             ->login(\App\Filament\Pages\Auth\Login::class)
+            ->registration(\App\Filament\Pages\Auth\Register::class)
+            ->profile(\App\Filament\Pages\Auth\EditProfile::class)
             ->colors([
                 'primary' => Color::Blue,
             ])

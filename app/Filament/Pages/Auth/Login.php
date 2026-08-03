@@ -8,6 +8,9 @@ use Filament\Pages\Auth\Login as BasePage;
 
 class Login extends BasePage
 {
+    protected static string $layout = 'filament-panels::components.layout.base';
+    protected static string $view = 'filament.pages.auth.login';
+
     protected function getEmailFormComponent(): Component
     {
         return TextInput::make('username')
