@@ -5,18 +5,19 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
+    use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -26,9 +27,8 @@ class User extends Authenticatable implements FilamentUser
     protected $fillable = [
         'name',
         'email',
+        'username',
         'password',
-        'team_id',
-        'role',
     ];
 
     /**
@@ -54,14 +54,9 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function team(): BelongsTo
+    public function sections(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsTo(Team::class);
-    }
-
-    public function projectLeads(): BelongsToMany
-    {
-        return $this->belongsToMany(Project::class, 'project_lead')->withTimestamps();
+        return $this->belongsToMany(Section::class);
     }
 
     public function dailyReports(): HasMany
@@ -69,13 +64,8 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(DailyReport::class);
     }
 
-    public function weeklyReportSummaries(): HasMany
-    {
-        return $this->hasMany(WeeklyReportIndividualSummary::class);
-    }
-
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['developer', 'lead', 'admin'], true);
+        return true; // Let spatie permissions handle specific resource access
     }
 }

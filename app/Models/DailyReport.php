@@ -4,43 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DailyReport extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'user_id',
-        'project_id',
-        'module_id',
-        'report_date',
-        'progress_text',
-        'image_path',
-        'linked_feature_id',
-    ];
+    protected $fillable = ['user_id', 'sub_module_id', 'report_date', 'description'];
 
     protected $casts = [
         'report_date' => 'date',
     ];
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function project(): BelongsTo
+    public function subModule()
     {
-        return $this->belongsTo(Project::class);
+        return $this->belongsTo(SubModule::class);
     }
 
-    public function module(): BelongsTo
+    public function reportImages()
     {
-        return $this->belongsTo(Module::class);
-    }
-
-    public function linkedFeature(): BelongsTo
-    {
-        return $this->belongsTo(FeatureChecklist::class, 'linked_feature_id');
+        return $this->hasMany(ReportImage::class);
     }
 }

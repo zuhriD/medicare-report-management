@@ -8,6 +8,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -27,15 +28,30 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->brandName('MRM')
-            ->login()
+            ->brandName('Medicare Reports')
+            // ->brandLogo(asset('assets/images/medicare_logo.png'))
+            // ->brandLogoHeight('2rem')
+            ->favicon(asset('assets/images/medicare_logo.png'))
+            ->login(\App\Filament\Pages\Auth\Login::class)
+            ->registration(\App\Filament\Pages\Auth\Register::class)
+            ->profile(\App\Filament\Pages\Auth\EditProfile::class)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make()
+                    ->label('Reports')
+                    ->icon('heroicon-o-clipboard-document-list'),
+                NavigationGroup::make()
+                    ->label('Master Data')
+                    ->icon('heroicon-o-table-cells'),
+                NavigationGroup::make()
+                    ->label('Filament Shield'),
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

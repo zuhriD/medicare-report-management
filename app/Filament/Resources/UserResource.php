@@ -21,7 +21,7 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
 
     public static function form(Form $form): Form
     {
@@ -30,28 +30,33 @@ class UserResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+                TextInput::make('username')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->email()
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                Select::make('team_id')
-                    ->relationship('team', 'name')
-                    ->searchable()
+                Forms\Components\Select::make('sections')
+                    ->relationship('sections', 'name')
+                    ->multiple()
                     ->preload()
+                    ->searchable()
+                    ->label('Sections')
                     ->nullable(),
-                Select::make('role')
-                    ->options([
-                        'developer' => 'Developer',
-                        'lead' => 'Lead',
-                        'admin' => 'Admin',
-                    ])
-                    ->required(),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'admin'])),
                 TextInput::make('password')
                     ->password()
-                    ->required(fn (string $context): bool => $context === 'create')
-                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null)
-                    ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->required(fn(string $context): bool => $context === 'create')
+                    ->dehydrateStateUsing(fn(?string $state): ?string => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn(?string $state): bool => filled($state))
                     ->maxLength(255),
             ]);
     }
@@ -63,32 +68,51 @@ class UserResource extends Resource
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('username')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('team.name')
-                    ->label('Team')
+                TextColumn::make('sections.name')
+                    ->label('Sections')
+                    ->badge()
+                    ->color('success')
+                    ->sortable()
                     ->toggleable(),
-                TextColumn::make('role')
+                TextColumn::make('roles.name')
                     ->badge()
                     ->sortable(),
             ])
             ->filters([
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
             ]);
     }
 
     public static function getRelations(): array
     {
-        return [
-        ];
+        return [];
     }
 
     public static function getPages(): array
