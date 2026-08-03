@@ -28,4 +28,11 @@ class Login extends BasePage
             'password' => $data['password'],
         ];
     }
+
+    protected function throwFailureValidationException(): never
+    {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'data.username' => __('filament-panels::pages/auth/login.messages.failed'),
+        ]);
+    }
 }
