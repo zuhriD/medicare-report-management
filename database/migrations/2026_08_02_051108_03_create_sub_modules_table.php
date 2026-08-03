@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('module_id')->constrained('modules')->cascadeOnDelete();
             $table->string('name');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

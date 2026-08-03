@@ -28,10 +28,13 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->brandName('MRM')
+            ->brandName('Medicare Reports')
+            // ->brandLogo(asset('assets/images/medicare_logo.png'))
+            // ->brandLogoHeight('2rem')
+            ->favicon(asset('assets/images/medicare_logo.png'))
             ->login(\App\Filament\Pages\Auth\Login::class)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -44,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-clipboard-document-list'),
                 NavigationGroup::make()
                     ->label('Master Data')
-                    ->icon('heroicon-o-circle-stack'),
+                    ->icon('heroicon-o-table-cells'),
                 NavigationGroup::make()
                     ->label('Filament Shield'),
             ])

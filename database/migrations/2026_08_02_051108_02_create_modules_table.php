@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->enum('type', ['module', 'non_module'])->default('module');
+            $table->enum('phase', ['development', 'testing'])->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -93,7 +93,7 @@ class MemberWeeklyReportResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('Assign Progress')
-                    ->description('Update the progress for the sub-modules you worked on.')
+                    ->description('Update the progress for the sub-modules / platforms you worked on.')
                     ->schema([
                         Forms\Components\Repeater::make('weeklyReportProgresses')
                             ->relationship('weeklyReportProgresses')
@@ -152,7 +152,7 @@ class MemberWeeklyReportResource extends Resource
                                     ->required(),
                             ])
                             ->columnSpanFull()
-                            ->columns(2),
+                            ->columns(3),
                     ]),
             ]);
     }
@@ -162,13 +162,22 @@ class MemberWeeklyReportResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('week_number')
-                    ->searchable(),
+                    ->searchable()
+                    ->label("Week")
+                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                    ->icon('heroicon-m-calendar-days'),
                 Tables\Columns\TextColumn::make('start_date')
-                    ->date()
-                    ->sortable(),
+                    ->date('M d, Y')
+                    ->sortable()
+                    ->label("Start Date")
+                    ->badge()
+                    ->color('info'),
                 Tables\Columns\TextColumn::make('end_date')
-                    ->date()
-                    ->sortable(),
+                    ->date('M d, Y')
+                    ->sortable()
+                    ->label("End Date")
+                    ->badge()
+                    ->color('success'),
             ])
             ->filters([
                 //
@@ -178,7 +187,10 @@ class MemberWeeklyReportResource extends Resource
             ])
             ->bulkActions([
                 // 
-            ]);
+            ])
+            ->emptyStateHeading('No weekly reports yet')
+            ->emptyStateDescription('You do not have any weekly reports assigned.')
+            ->emptyStateIcon('heroicon-o-document-chart-bar');
     }
 
     public static function getRelations(): array

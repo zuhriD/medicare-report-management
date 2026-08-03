@@ -15,6 +15,7 @@ return new class extends Migration
             $table->date('report_date');
             $table->text('description');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

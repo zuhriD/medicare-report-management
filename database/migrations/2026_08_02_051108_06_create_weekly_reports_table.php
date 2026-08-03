@@ -16,6 +16,7 @@ return new class extends Migration
             $table->text('executive_summary')->nullable();
             $table->text('plan_of_action')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
