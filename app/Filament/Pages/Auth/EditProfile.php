@@ -20,9 +20,11 @@ class EditProfile extends BaseEditProfile
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
                 $this->getEmailFormComponent(),
-                Select::make('section_id')
-                    ->relationship('section', 'name')
-                    ->label('Team')
+                Select::make('sections')
+                    ->relationship('sections', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->label('Team(s)')
                     ->required(),
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),

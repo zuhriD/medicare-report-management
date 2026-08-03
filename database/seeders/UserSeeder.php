@@ -23,8 +23,8 @@ class UserSeeder extends Seeder
             'email' => 'admin@gmail.com',
             'username' => 'admin',
             'password' => bcrypt('admin123'),
-            'section_id' => $webSection->id ?? null,
         ]);
+        if ($webSection) $admin->sections()->attach($webSection->id);
         $admin->assignRole('super_admin');
 
         $leadPrimary = User::factory()->create([
@@ -32,8 +32,8 @@ class UserSeeder extends Seeder
             'email' => 'lead@gmail.com',
             'username' => 'lead1',
             'password' => bcrypt('lead123'),
-            'section_id' => $backendSection->id ?? null,
         ]);
+        if ($backendSection) $leadPrimary->sections()->attach($backendSection->id);
         $leadPrimary->assignRole('lead');
 
         $developerA = User::factory()->create([
@@ -41,8 +41,8 @@ class UserSeeder extends Seeder
             'email' => 'mobile_dev@gmail.com',
             'username' => 'dev1',
             'password' => bcrypt('mobiledev123'),
-            'section_id' => $mobileSection->id ?? null,
         ]);
+        if ($mobileSection) $developerA->sections()->attach($mobileSection->id);
         $developerA->assignRole('team_member');
     }
 }

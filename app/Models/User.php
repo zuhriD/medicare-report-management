@@ -29,7 +29,6 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'username',
         'password',
-        'section_id',
     ];
 
     /**
@@ -55,9 +54,9 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function section(): BelongsTo
+    public function sections(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsTo(Section::class);
+        return $this->belongsToMany(Section::class);
     }
 
     public function dailyReports(): HasMany

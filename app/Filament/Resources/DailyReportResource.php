@@ -36,7 +36,7 @@ class DailyReportResource extends Resource
                             ->native(false)
                             ->displayFormat('d/m/Y'),
                         Forms\Components\Select::make('module_id')
-                            ->label('Module')
+                            ->label('Module / Category')
                             ->options(\App\Models\Module::pluck('name', 'id'))
                             ->live()
                             ->afterStateUpdated(fn(callable $set) => $set('sub_module_id', null))
@@ -50,7 +50,7 @@ class DailyReportResource extends Resource
                             ->preload()
                             ->required(),
                         Forms\Components\Select::make('sub_module_id')
-                            ->label('Sub Module / Platform')
+                            ->label('Sub Module / Category / Platform')
                             ->options(function (callable $get) {
                                 $module = \App\Models\Module::find($get('module_id'));
                                 if (! $module) {
@@ -60,7 +60,20 @@ class DailyReportResource extends Resource
                             })
                             ->required()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->helperText('Add new if the sub module platform does not exist under the chosen module.')
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Sub Module Name')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->createOptionUsing(function (array $data, callable $get) {
+                                return \App\Models\SubModule::create([
+                                    'name' => $data['name'],
+                                    'module_id' => $get('module_id'),
+                                ])->getKey();
+                            }),
                         Forms\Components\RichEditor::make('description')
                             ->required()
                             ->columnSpanFull()
@@ -193,10 +206,11 @@ class DailyReportResource extends Resource
             return $query; // Admins can see all
         }
 
-        if ($user->hasRole('lead') && $user->section_id) {
+        if ($user->hasRole('lead') && $user->sections()->exists()) {
             // Section lead can see reports of users in the same section
-            return $query->whereHas('user', function ($q) use ($user) {
-                $q->where('section_id', $user->section_id);
+            $sectionIds = $user->sections->pluck('id')->toArray();
+            return $query->whereHas('user.sections', function ($q) use ($sectionIds) {
+                $q->whereIn('sections.id', $sectionIds);
             });
         }
 

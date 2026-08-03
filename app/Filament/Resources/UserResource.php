@@ -39,21 +39,24 @@ class UserResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                Forms\Components\Select::make('section_id')
-                    ->relationship('section', 'name')
-                    ->label('Section')
+                Forms\Components\Select::make('sections')
+                    ->relationship('sections', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->label('Sections')
                     ->nullable(),
                 Forms\Components\Select::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
                     ->searchable()
-                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'admin'])),
+                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'admin'])),
                 TextInput::make('password')
                     ->password()
-                    ->required(fn (string $context): bool => $context === 'create')
-                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null)
-                    ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->required(fn(string $context): bool => $context === 'create')
+                    ->dehydrateStateUsing(fn(?string $state): ?string => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn(?string $state): bool => filled($state))
                     ->maxLength(255),
             ]);
     }
@@ -71,8 +74,10 @@ class UserResource extends Resource
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('section.name')
-                    ->label('Section')
+                TextColumn::make('sections.name')
+                    ->label('Sections')
+                    ->badge()
+                    ->color('success')
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('roles.name')
@@ -107,8 +112,7 @@ class UserResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-        ];
+        return [];
     }
 
     public static function getPages(): array
