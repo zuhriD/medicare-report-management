@@ -188,18 +188,36 @@
             color: #374151 !important;
         }
 
-        .auth-login-form .fi-input {
-            /* border-radius: 0.625rem !important; */
-            padding: 0.6rem 1rem !important;
-            font-size: 0.9rem !important;
+        .auth-login-form .fi-input-wrp {
+            box-shadow: inset 0 0 0 1px #d1d5db !important;
             background: #ffffff !important;
-            transition: border-color 0.15s, box-shadow 0.15s !important;
+            border-radius: 0.5rem !important;
+            transition: all 0.15s !important;
         }
 
-        .auth-login-form .fi-input:focus {
+        .auth-login-form .fi-input-wrp:focus-within {
+            box-shadow: inset 0 0 0 2px #335dc5 !important;
+        }
+
+        .auth-login-form .fi-input {
+            padding: 0.6rem 1rem !important;
+            font-size: 0.9rem !important;
+            background: transparent !important;
+            color: #111827 !important;
+        }
+
+        .auth-login-form .fi-input::placeholder {
+            color: #9ca3af !important;
+        }
+
+        .auth-login-form .fi-checkbox-input {
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+        }
+
+        .auth-login-form .fi-checkbox-input:checked {
+            background-color: #335dc5 !important;
             border-color: #335dc5 !important;
-            box-shadow: 0 0 0 3px rgba(51, 93, 197, 0.12) !important;
-            outline: none !important;
         }
 
         .auth-login-form .fi-btn-primary,
@@ -211,7 +229,6 @@
             padding: 0.875rem 1.5rem !important;
             letter-spacing: 0.01em !important;
             transition: all 0.2s !important;
-            /* box-shadow: 0 4px 15px rgba(51, 93, 197, 0.2) !important; */
             border: none !important;
             color: #ffffff !important;
             cursor: pointer !important;
@@ -221,7 +238,6 @@
         .auth-login-form .fi-btn-primary:hover,
         .auth-login-form [type="submit"]:hover {
             background: linear-gradient(90deg, #264bb3, #3a62cc) !important;
-            /* box-shadow: 0 6px 20px rgba(51, 93, 197, 0.2) !important; */
             transform: translateY(-1px) !important;
         }
 
@@ -253,9 +269,52 @@
             font-size: 0.75rem;
             color: #9ca3af;
         }
+
+        /* ─── Dark Mode ─────────────────────────────────── */
+        .dark .auth-login-wrapper {
+            background: #09090b; /* Filament Gray 950 */
+        }
+        .dark .auth-login-title {
+            color: #fafafa;
+        }
+        .dark .auth-login-subtitle {
+            color: #a1a1aa; /* Filament Gray 400 */
+        }
+        .dark .auth-login-form .fi-fo-field-wrp>label,
+        .dark .auth-login-form .fi-fo-field-wrp label {
+            color: #d4d4d8 !important; /* Filament Gray 300 */
+        }
+        .dark .auth-login-form .fi-input-wrp {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .dark .auth-login-form .fi-input {
+            color: #fafafa !important;
+        }
+        .dark .auth-login-form .fi-input::placeholder {
+            color: #a1a1aa !important;
+        }
+        .dark .auth-login-form .fi-checkbox-input {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .dark .auth-login-form .fi-checkbox-input:checked {
+            background-color: #335dc5 !important;
+            border-color: #335dc5 !important;
+        }
+        .dark .auth-login-register-link {
+            color: #a1a1aa;
+        }
     </style>
 
-    <div class="auth-login-wrapper">
+    <div class="auth-login-wrapper" style="position: relative;">
+
+        {{-- ── Theme Switcher ─────────────────────────────── --}}
+        @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()))
+            <div style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 50; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid rgba(156, 163, 175, 0.2);" class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+                <x-filament-panels::theme-switcher />
+            </div>
+        @endif
 
         {{-- ── Left Gradient Card ─────────────────────────── --}}
         <div class="auth-login-left">
