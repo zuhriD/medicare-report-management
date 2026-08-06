@@ -311,7 +311,7 @@
 
         {{-- ── Theme Switcher ─────────────────────────────── --}}
         @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()))
-            <div style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 50; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid rgba(156, 163, 175, 0.2);" class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+            <div x-data="{ close: () => {} }" style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 50; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid rgba(156, 163, 175, 0.2);" class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
                 <x-filament-panels::theme-switcher />
             </div>
         @endif
