@@ -32,11 +32,11 @@ class DailyReportResource extends Resource
                         Forms\Components\DatePicker::make('report_date')
                             ->label('Report Date')
                             ->required()
-                            ->default(now())
+                            ->default(session('last_report_date', now()))
                             ->native(false)
                             ->displayFormat('d/m/Y'),
                         Forms\Components\Select::make('module_id')
-                            ->label('Module / Category')
+                            ->label('Main Task')
                             ->options(\App\Models\Module::pluck('name', 'id'))
                             ->live()
                             ->afterStateUpdated(fn(callable $set) => $set('sub_module_id', null))
@@ -50,7 +50,7 @@ class DailyReportResource extends Resource
                             ->preload()
                             ->required(),
                         Forms\Components\Select::make('sub_module_id')
-                            ->label('Sub Module / Category / Platform')
+                            ->label('Sub Task / Platform')
                             ->options(function (callable $get) {
                                 $module = \App\Models\Module::find($get('module_id'));
                                 if (! $module) {
