@@ -38,13 +38,15 @@ class WeeklyReportResource extends Resource
                             ->label("Week Number"),
                         Forms\Components\DatePicker::make('start_date')
                             ->required()
-                            ->native(false)
                             ->displayFormat('d/m/Y')
+                            ->placeholder('dd/mm/yyyy')
+                            ->native(false)
                             ->label("Start Date"),
                         Forms\Components\DatePicker::make('end_date')
                             ->required()
-                            ->native(false)
                             ->displayFormat('d/m/Y')
+                            ->placeholder('dd/mm/yyyy')
+                            ->native(false)
                             ->label("End Date"),
                     ])->columns(3),
 
