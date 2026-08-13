@@ -65,11 +65,11 @@ return [
         'gcs' => [
             'driver' => 'gcs',
             'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
-            'key_file' => env('GOOGLE_CLOUD_KEY_FILE'),
+            'key_file' => base_path(env('GOOGLE_CLOUD_KEY_FILE', 'service-account.json')),
             'key_file_json' => env('GOOGLE_CLOUD_KEY_FILE_JSON'),
             'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
             'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
-            'url' => env('GOOGLE_CLOUD_STORAGE_URL'),
+            'url' => env('GOOGLE_CLOUD_STORAGE_URL', env('GOOGLE_CLOUD_STORAGE_API_URI', 'https://storage.googleapis.com') . '/' . env('GOOGLE_CLOUD_STORAGE_BUCKET')),
             'visibility' => env('GOOGLE_CLOUD_STORAGE_VISIBILITY', 'public'),
             'throw' => false,
             'report' => false,

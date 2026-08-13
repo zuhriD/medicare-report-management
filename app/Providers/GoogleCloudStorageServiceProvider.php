@@ -40,11 +40,22 @@ class GoogleCloudStorageServiceProvider extends ServiceProvider
                     : Visibility::PRIVATE,
             );
 
-            return new LaravelFilesystemAdapter(
-                driver: new Filesystem($adapter, $config),
-                adapter: $adapter,
-                config: $config,
-            );
+            return new class(
+                new Filesystem($adapter, $config),
+                $adapter,
+                $config
+            ) extends LaravelFilesystemAdapter {
+                public function url($path)
+                {
+                    $url = $this->config['url'] ?? 'https://storage.googleapis.com/' . $this->config['bucket'];
+                    
+                    if (isset($this->config['path_prefix']) && $this->config['path_prefix']) {
+                        $path = trim($this->config['path_prefix'], '/') . '/' . ltrim($path, '/');
+                    }
+                    
+                    return rtrim($url, '/') . '/' . ltrim($path, '/');
+                }
+            };
         });
     }
 }
