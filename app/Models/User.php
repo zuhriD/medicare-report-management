@@ -3,13 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Filament\Models\Contracts\FilamentUser;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -17,7 +17,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -28,6 +28,8 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'username',
+        'github_username',
+        'github_email',
         'password',
     ];
 
@@ -54,7 +56,7 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function sections(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function sections(): BelongsToMany
     {
         return $this->belongsToMany(Section::class);
     }
@@ -62,6 +64,11 @@ class User extends Authenticatable implements FilamentUser
     public function dailyReports(): HasMany
     {
         return $this->hasMany(DailyReport::class);
+    }
+
+    public function githubCommits(): HasMany
+    {
+        return $this->hasMany(GithubCommit::class);
     }
 
     public function canAccessPanel(Panel $panel): bool
