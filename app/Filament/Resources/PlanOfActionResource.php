@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DailyReportResource\Pages;
-use App\Models\DailyReport;
+use App\Filament\Resources\PlanOfActionResource\Pages;
+use App\Models\PlanOfAction;
 use App\Models\SubModule;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,25 +14,30 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 
-class DailyReportResource extends Resource
+class PlanOfActionResource extends Resource
 {
-    protected static ?string $model = DailyReport::class;
+    protected static ?string $model = PlanOfAction::class;
 
     protected static ?string $navigationGroup = 'Reports';
+
+    protected static ?string $navigationLabel = 'Plan of Action';
+
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Report Information')
-                    ->description('Provide the details of your daily report.')
+                Forms\Components\Hidden::make('user_id')
+                    ->default(Auth::id()),
+                Forms\Components\Section::make('Plan of Action Information')
+                    ->description('Provide the details of your plan of action.')
                     ->schema([
-                        Forms\Components\Hidden::make('user_id')
-                            ->default(Auth::id()),
-                        Forms\Components\DatePicker::make('report_date')
-                            ->label('Report Date')
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('POA Date')
                             ->required()
-                            ->default(session('last_report_date', now()))
                             ->native(false)
                             ->displayFormat('d/m/Y'),
                         Forms\Components\Select::make('module_id')
@@ -45,7 +50,6 @@ class DailyReportResource extends Resource
                                     $set('module_id', $record->subModule->module_id);
                                 }
                             })
-                            ->dehydrated(false)
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -75,7 +79,6 @@ class DailyReportResource extends Resource
                                 ])->getKey();
                             }),
                         Forms\Components\RichEditor::make('description')
-                            ->required()
                             ->columnSpanFull()
                             ->toolbarButtons([
                                 'blockquote',
@@ -93,64 +96,33 @@ class DailyReportResource extends Resource
                                 'undo',
                             ]),
                     ])->columns(3),
-
-                Forms\Components\Section::make('Attachments')
-                    ->description('Upload any relevant images.')
-                    ->schema([
-                        Forms\Components\Repeater::make('reportImages')
-                            ->relationship('reportImages')
-                            ->hiddenLabel()
-                            ->schema([
-                                Forms\Components\FileUpload::make('image_path')
-                                    ->image()
-                                    ->hiddenLabel()
-                                    ->required()
-                                    ->imageEditor(),
-                                Forms\Components\TextInput::make('caption')
-                                    ->hiddenLabel()
-                                    ->placeholder('Add a caption...')
-                                    ->maxLength(255),
-                            ])
-                            ->defaultItems(0)
-                            ->addActionLabel('Add Image')
-                            ->reorderableWithButtons()
-                            ->collapsible()
-                            ->cloneable()
-                            ->itemLabel(fn(array $state): ?string => $state['caption'] ?? null)
-                            ->columns(2),
-                    ]),
-            ])
-            ->columns(1);
+            ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')
-                    ->sortable()
-                    ->label("Member")
-                    ->searchable()
-                    ->weight(\Filament\Support\Enums\FontWeight::Bold),
                 Tables\Columns\TextColumn::make('subModule.name')
                     ->sortable()
                     ->searchable()
                     ->badge()
                     ->color('info')
-                    ->label('Sub Module'),
-                Tables\Columns\TextColumn::make('report_date')
-                    ->date('M d, Y')
+                    ->label('Sub Task / Platform'),
+                Tables\Columns\TextColumn::make('start_date')
+                    ->date('d/m/Y')
                     ->sortable()
                     ->badge()
                     ->color('success')
-                    ->icon('heroicon-m-calendar'),
+                    ->icon('heroicon-m-calendar')
+                    ->label('POA Date'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\Filter::make('report_date')
+                Tables\Filters\Filter::make('start_date')
                     ->form([
                         Forms\Components\DatePicker::make('start_date')
                             ->label('Start Date')
@@ -165,11 +137,11 @@ class DailyReportResource extends Resource
                         return $query
                             ->when(
                                 $data['start_date'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('start_date', '>=', $date),
                             )
                             ->when(
                                 $data['until_date'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('start_date', '<=', $date),
                             );
                     })
                     ->columns(2)
@@ -177,21 +149,31 @@ class DailyReportResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ], layout: Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
+                Tables\Actions\ViewAction::make()->modal(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
-            ])
-            ->emptyStateHeading('No daily reports yet')
-            ->emptyStateDescription('Start by creating your first daily report.')
-            ->emptyStateIcon('heroicon-o-document-text');
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListPlanOfActions::route('/'),
+            'create' => Pages\CreatePlanOfAction::route('/create'),
+            'edit' => Pages\EditPlanOfAction::route('/{record}/edit'),
+        ];
     }
 
     public static function getEloquentQuery(): Builder
@@ -207,31 +189,7 @@ class DailyReportResource extends Resource
             return $query; // Admins can see all
         }
 
-        if ($user && $user->hasRole('lead') && $user->sections()->exists()) {
-            // Section lead can see reports of users in the same section
-            $sectionIds = $user->sections->pluck('id')->toArray();
-            return $query->whereHas('user.sections', function ($q) use ($sectionIds) {
-                $q->whereIn('sections.id', $sectionIds);
-            });
-        }
-
         // Team members see only their own
         return $query->where('user_id', $user?->id);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListDailyReports::route('/'),
-            'create' => Pages\CreateDailyReport::route('/create'),
-            'edit' => Pages\EditDailyReport::route('/{record}/edit'),
-        ];
     }
 }
