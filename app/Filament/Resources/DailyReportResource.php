@@ -460,12 +460,13 @@ class DailyReportResource extends Resource
                 SoftDeletingScope::class,
             ]);
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
-        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+        if ($user && ($user->hasRole('super_admin') || $user->hasRole('admin'))) {
             return $query; // Admins can see all
         }
 
-        if ($user->hasRole('lead') && $user->sections()->exists()) {
+        if ($user && $user->hasRole('lead') && $user->sections()->exists()) {
             // Section lead can see reports of users in the same section
             $sectionIds = $user->sections->pluck('id')->toArray();
 
@@ -475,7 +476,7 @@ class DailyReportResource extends Resource
         }
 
         // Team members see only their own
-        return $query->where('user_id', $user->id);
+        return $query->where('user_id', $user?->id);
     }
 
     public static function getRelations(): array
