@@ -58,7 +58,7 @@ class ListPlanOfActions extends ListRecords
         $today = now();
         $dateStr = $today->format('d/m/Y') . ' (' . $today->format('l') . ')';
         
-        $text = "DAILY ACHIEVEMENT & DEVELOPMENT REPORT\nDate: {$dateStr}\n\n";
+        $text = "PLAN OF ACTION\nDate: {$dateStr}\n\n";
         
         foreach ($poas as $team => $teamPoas) {
             $text .= " {$team}\n";
