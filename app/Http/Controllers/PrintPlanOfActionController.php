@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PrintPlanOfActionController extends Controller
 {
-    public function recap(): View
+    public function recap(\Illuminate\Http\Request $request): View
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -19,13 +19,27 @@ class PrintPlanOfActionController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Get all POAs grouped by team
+        $rawDate = $request->input('date', now()->toDateString());
+
+        try {
+            if (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+                $dateObj = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate);
+            } else {
+                $dateObj = \Illuminate\Support\Carbon::parse($rawDate);
+            }
+        } catch (\Throwable $e) {
+            $dateObj = now();
+        }
+
+        $selectedDate = $dateObj->format('Y-m-d');
+
+        // Get all POAs for the selected date grouped by team
         $poas = PlanOfAction::with(['user', 'module', 'subModule'])
             ->whereNotNull('user_id')
+            ->whereDate('start_date', $selectedDate)
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy(function ($poa) {
-                // Group by team - if you add company relationship later, use: $poa->user?->company?->name
                 return 'MEDIKCARE';
             });
         
@@ -34,8 +48,9 @@ class PrintPlanOfActionController extends Controller
             ->orderBy('name')
             ->get();
         
-        // Get submitted user IDs
+        // Get submitted user IDs for the selected date
         $submittedUserIds = PlanOfAction::whereNotNull('user_id')
+            ->whereDate('start_date', $selectedDate)
             ->pluck('user_id')
             ->unique()
             ->toArray();
@@ -50,6 +65,7 @@ class PrintPlanOfActionController extends Controller
             'allTeamMembers' => $allTeamMembers,
             'submittedCount' => count($submittedUserIds),
             'notSubmittedMembers' => $notSubmittedMembers,
+            'selectedDate' => $selectedDate,
         ]);
     }
 }
