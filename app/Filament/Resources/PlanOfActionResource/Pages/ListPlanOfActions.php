@@ -73,13 +73,14 @@ class ListPlanOfActions extends ListRecords
                 foreach ($userPoas as $poa) {
                     $text .= "{$poa->module?->name} | {$poa->subModule?->name}\n";
                     
-                    // Strip HTML tags from description and split by bullet points
-                    $cleanDescription = strip_tags($poa->description ?? '');
-                    $tasks = array_filter(array_map('trim', explode('-', $cleanDescription)));
+                    $tasks = is_array($poa->description)
+                        ? $poa->description
+                        : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
                     if (!empty($tasks)) {
                         foreach ($tasks as $task) {
-                            if ($task) {
-                                $text .= "- {$task}\n";
+                            $cleanTask = trim(strip_tags($task));
+                            if ($cleanTask) {
+                                $text .= "- {$cleanTask}\n";
                             }
                         }
                     }

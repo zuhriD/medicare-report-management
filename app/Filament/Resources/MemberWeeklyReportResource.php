@@ -83,8 +83,18 @@ class MemberWeeklyReportResource extends Resource
                                     $html .= "<div class=\"p-4\">
                                         <div class=\"font-bold text-gray-800 mb-1\">{$date}</div>
                                         <div class=\"text-indigo-600 text-sm font-semibold mb-2\">{$subModuleName}</div>
-                                        <div class=\"prose prose-sm max-w-none [&>*:last-child]:mb-0\">{$report->description}</div>
-                                    </div>";
+                                        <div class=\"prose prose-sm max-w-none [&>*:last-child]:mb-0\">";
+
+                                    $tasks = is_array($report->description) ? $report->description : [$report->description];
+                                    foreach ($tasks as $task) {
+                                        $escapedTask = e($task);
+                                        $html .= "<div class=\"flex items-start gap-2 mb-1\">
+                                            <span class=\"text-indigo-500 mt-1\">•</span>
+                                            <span>{$escapedTask}</span>
+                                        </div>";
+                                    }
+
+                                    $html .= "</div></div>";
                                 }
                                 $html .= '</div>';
 
