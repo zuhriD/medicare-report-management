@@ -104,13 +104,18 @@
                     <div class="space-y-3 mb-2">
                         @foreach($reports as $report)
                             @php
-                                $tasks = is_array($report->description) ? $report->description : [$report->description];
+                                $rawDesc = $report->getRawOriginal('description') ?? $report->description;
+                                $tasks = \App\Models\DailyReport::parseTasks($rawDesc);
                             @endphp
                             @foreach($tasks as $task)
-                            <div class="flex items-start text-gray-700">
-                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                                <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! e($task) !!}</div>
-                            </div>
+                                @if(preg_match('/^[A-Za-z0-9\s\-_()\/&]+(:|(\s*\|\s*[A-Za-z0-9\s\-_()\/&]+)+)$/u', $task))
+                                    <div class="font-semibold text-xs text-indigo-700 mt-3 mb-1 uppercase tracking-wide">{{ $task }}</div>
+                                @else
+                                    <div class="flex items-start text-gray-700">
+                                        <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
+                                        <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{{ $task }}</div>
+                                    </div>
+                                @endif
                             @endforeach
                         @endforeach
                     </div>
@@ -172,13 +177,18 @@
                             <div class="space-y-3 pl-2">
                                 @foreach($groupReports as $report)
                                     @php
-                                        $tasks = is_array($report->description) ? $report->description : [$report->description];
+                                        $rawDesc = $report->getRawOriginal('description') ?? $report->description;
+                                        $tasks = \App\Models\DailyReport::parseTasks($rawDesc);
                                     @endphp
                                     @foreach($tasks as $task)
-                                    <div class="flex items-start text-gray-700">
-                                        <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                                        <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! e($task) !!}</div>
-                                    </div>
+                                        @if(preg_match('/^[A-Za-z0-9\s\-_()\/&]+(:|(\s*\|\s*[A-Za-z0-9\s\-_()\/&]+)+)$/u', $task))
+                                            <div class="font-semibold text-xs text-indigo-700 mt-3 mb-1 uppercase tracking-wide">{{ $task }}</div>
+                                        @else
+                                            <div class="flex items-start text-gray-700">
+                                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
+                                                <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{{ $task }}</div>
+                                            </div>
+                                        @endif
                                     @endforeach
                                 @endforeach
                             </div>
