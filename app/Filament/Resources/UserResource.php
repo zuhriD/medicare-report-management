@@ -3,9 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
-use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -39,24 +37,34 @@ class UserResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                Forms\Components\Select::make('sections')
+                TextInput::make('github_username')
+                    ->label('GitHub Username')
+                    ->placeholder('e.g. johndoe')
+                    ->helperText('Used to map commits to this developer.')
+                    ->maxLength(255),
+                TextInput::make('github_email')
+                    ->label('GitHub Email')
+                    ->email()
+                    ->helperText('Used to map commits by author email.')
+                    ->maxLength(255),
+                Select::make('sections')
                     ->relationship('sections', 'name')
                     ->multiple()
                     ->preload()
                     ->searchable()
                     ->label('Sections')
                     ->nullable(),
-                Forms\Components\Select::make('roles')
+                Select::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
                     ->searchable()
-                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'admin'])),
+                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'admin'])),
                 TextInput::make('password')
                     ->password()
-                    ->required(fn(string $context): bool => $context === 'create')
-                    ->dehydrateStateUsing(fn(?string $state): ?string => filled($state) ? Hash::make($state) : null)
-                    ->dehydrated(fn(?string $state): bool => filled($state))
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn (?string $state): bool => filled($state))
                     ->maxLength(255),
             ]);
     }
@@ -74,6 +82,12 @@ class UserResource extends Resource
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('github_username')
+                    ->label('GitHub')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('sections.name')
                     ->label('Sections')
                     ->badge()

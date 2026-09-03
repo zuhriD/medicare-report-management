@@ -4,15 +4,24 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DailyReportResource\Pages;
 use App\Models\DailyReport;
+use App\Models\GithubCommit;
+use App\Models\GithubRepository;
+use App\Models\Module;
 use App\Models\SubModule;
+use App\Services\OllamaService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class DailyReportResource extends Resource
 {
@@ -34,12 +43,13 @@ class DailyReportResource extends Resource
                             ->required()
                             ->default(session('last_report_date', now()))
                             ->native(false)
-                            ->displayFormat('d/m/Y'),
+                            ->displayFormat('d/m/Y')
+                            ->live(),
                         Forms\Components\Select::make('module_id')
                             ->label('Main Task')
-                            ->options(\App\Models\Module::pluck('name', 'id'))
+                            ->options(Module::pluck('name', 'id'))
                             ->live()
-                            ->afterStateUpdated(fn(callable $set) => $set('sub_module_id', null))
+                            ->afterStateUpdated(fn (callable $set) => $set('sub_module_id', null))
                             ->afterStateHydrated(function (callable $set, $record) {
                                 if ($record && $record->subModule) {
                                     $set('module_id', $record->subModule->module_id);
@@ -52,10 +62,11 @@ class DailyReportResource extends Resource
                         Forms\Components\Select::make('sub_module_id')
                             ->label('Sub Task / Platform')
                             ->options(function (callable $get) {
-                                $module = \App\Models\Module::find($get('module_id'));
+                                $module = Module::find($get('module_id'));
                                 if (! $module) {
                                     return SubModule::all()->pluck('name', 'id');
                                 }
+
                                 return $module->subModules->pluck('name', 'id');
                             })
                             ->required()
@@ -69,30 +80,331 @@ class DailyReportResource extends Resource
                                     ->maxLength(255),
                             ])
                             ->createOptionUsing(function (array $data, callable $get) {
-                                return \App\Models\SubModule::create([
+                                return SubModule::create([
                                     'name' => $data['name'],
                                     'module_id' => $get('module_id'),
                                 ])->getKey();
                             }),
-                        Forms\Components\RichEditor::make('description')
-                            ->required()
+                        Forms\Components\Placeholder::make('poa_today')
+                            ->label('Your Plan of Action Today')
                             ->columnSpanFull()
-                            ->toolbarButtons([
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'link',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'underline',
-                                'undo',
-                            ]),
+                            ->content(function (Forms\Get $get, ?DailyReport $record) {
+                                $userId = $record?->user_id ?? Auth::id();
+
+                                if (! $userId) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                $rawDate = $get('report_date') ?? $record?->report_date ?? session('last_report_date') ?? now()->toDateString();
+
+                                if (blank($rawDate)) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                try {
+                                    if ($rawDate instanceof \DateTimeInterface) {
+                                        $dbDate = $rawDate->format('Y-m-d');
+                                    } elseif (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+                                        $dbDate = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate)->format('Y-m-d');
+                                    } else {
+                                        $dbDate = \Illuminate\Support\Carbon::parse($rawDate)->format('Y-m-d');
+                                    }
+                                } catch (\Throwable $e) {
+                                    $dbDate = now()->format('Y-m-d');
+                                }
+
+                                $poas = \App\Models\PlanOfAction::with(['module', 'subModule'])
+                                    ->where('user_id', $userId)
+                                    ->whereDate('start_date', $dbDate)
+                                    ->get();
+
+                                if ($poas->isEmpty()) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                $html = '<div class="space-y-3 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">';
+                                foreach ($poas as $poa) {
+                                    $moduleName = $poa->module?->name;
+                                    $subName = $poa->subModule?->name;
+                                    $label = ($moduleName && $subName) ? "{$moduleName} | {$subName}" : ($subName ?? $moduleName ?? '');
+
+                                    if ($label) {
+                                        $html .= '<div class="font-semibold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">' . e($label) . '</div>';
+                                    }
+
+                                    $rawContent = $poa->getRawOriginal('description') ?? $poa->description;
+                                    $tasks = self::formatPoaDescription($rawContent, $poa->title ?? null);
+
+                                    $html .= '<div class="space-y-1 text-sm text-gray-700 dark:text-white">';
+                                    foreach ($tasks as $task) {
+                                        if (preg_match('/^[A-Za-z0-9\s\-_()\/&]+:$/u', $task)) {
+                                            $html .= '<div class="font-semibold text-xs text-gray-800 dark:text-gray-200 mt-2 mb-1">' . e($task) . '</div>';
+                                        } else {
+                                            $html .= '<div class="flex items-start gap-2 pl-1"><span class="text-indigo-500 font-bold select-none">•</span><span>' . e($task) . '</span></div>';
+                                        }
+                                    }
+                                    $html .= '</div>';
+                                }
+                                $html .= '</div>';
+
+                                return new \Illuminate\Support\HtmlString($html);
+                            }),
+                        Forms\Components\Repeater::make('description')
+                            ->label('Description Task')
+                            ->simple(
+                                Forms\Components\Textarea::make('description')
+                                    ->required()
+                                    ->rows(3)
+                                    ->placeholder('Describe the task...')
+                            )
+                            ->defaultItems(1)
+                            ->addActionLabel('Add Another Task')
+                            ->reorderable(false)
+                            ->columnSpanFull(),
                     ])->columns(3),
+
+                Forms\Components\Section::make('Import GitHub Commits')
+                    ->description('Select your commits by repository and add them to the description.')
+                    ->schema([
+                        Forms\Components\Select::make('commit_repository_id')
+                            ->label('Repository')
+                            ->options(function (): array {
+                                $repoIds = GithubCommit::query()
+                                    ->where('user_id', Auth::id())
+                                    ->distinct()
+                                    ->pluck('repository_id');
+
+                                return GithubRepository::query()
+                                    ->whereIn('id', $repoIds)
+                                    ->orderBy('full_name')
+                                    ->pluck('full_name', 'id')
+                                    ->all();
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('commit_ids', []);
+                                $set('commit_page', 1);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
+                        Forms\Components\Hidden::make('commit_page')
+                            ->default(1)
+                            ->live()
+                            ->dehydrated(false),
+                        Forms\Components\CheckboxList::make('commit_ids')
+                            ->label('Commits')
+                            ->live()
+                            ->dehydrated(false)
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->options(function (Get $get): array {
+                                $repositoryId = $get('commit_repository_id');
+
+                                if (blank($repositoryId)) {
+                                    return [];
+                                }
+
+                                $commits = GithubCommit::query()
+                                    ->where('user_id', Auth::id())
+                                    ->where('repository_id', $repositoryId)
+                                    ->orderByDesc('committed_at')
+                                    ->take(500)
+                                    ->get()
+                                    ->mapWithKeys(fn (GithubCommit $commit): array => [
+                                        $commit->id => sprintf(
+                                            '[%s] %s — %s',
+                                            $commit->committed_at?->format('d M Y H:i') ?? '—',
+                                            $commit->short_sha,
+                                            self::firstLine($commit->message),
+                                        ),
+                                    ]);
+
+                                return $commits
+                                    ->forPage(max(1, (int) $get('commit_page')), 10)
+                                    ->all();
+                            })
+                            ->helperText('Pick the commits you want to add to the description.')
+                            ->columnSpanFull(),
+                        Forms\Components\Placeholder::make('commit_page_info')
+                            ->label('')
+                            ->content(function (Get $get): string {
+                                $repositoryId = $get('commit_repository_id');
+
+                                if (blank($repositoryId)) {
+                                    return 'Select a repository above to browse your commits.';
+                                }
+
+                                $total = GithubCommit::query()
+                                    ->where('user_id', Auth::id())
+                                    ->where('repository_id', $repositoryId)
+                                    ->count();
+
+                                return sprintf(
+                                    'Page %s of %s · %s commit(s) available',
+                                    max(1, (int) $get('commit_page')),
+                                    max(1, (int) ceil($total / 10)),
+                                    number_format($total),
+                                );
+                            })
+                            ->columnSpanFull()
+                            ->dehydrated(false),
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('prev_commit_page')
+                                ->label('Previous')
+                                ->icon('heroicon-o-chevron-left')
+                                ->outlined()
+                                ->iconButton()
+                                ->action(fn (Get $get, Set $set) => $set(
+                                    'commit_page',
+                                    max(1, (int) $get('commit_page') - 1),
+                                ))
+                                ->visible(fn (Get $get): bool => (int) ($get('commit_page') ?? 1) > 1),
+                            Forms\Components\Actions\Action::make('next_commit_page')
+                                ->label('Next')
+                                ->icon('heroicon-o-chevron-right')
+                                ->outlined()
+                                ->iconButton()
+                                ->action(function (Get $get, Set $set): void {
+                                    $total = blank($get('commit_repository_id'))
+                                        ? 0
+                                        : GithubCommit::query()
+                                            ->where('user_id', Auth::id())
+                                            ->where('repository_id', $get('commit_repository_id'))
+                                            ->count();
+
+                                    $totalPages = max(1, (int) ceil($total / 10));
+
+                                    $set('commit_page', min($totalPages, (int) $get('commit_page') + 1));
+                                })
+                                ->visible(fn (Get $get): bool => filled($get('commit_repository_id'))),
+                            Forms\Components\Actions\Action::make('add_selected_commits')
+                                ->label('Add Selected Commits to Description')
+                                ->icon('heroicon-o-plus-circle')
+                                ->hiddenLabel(false)
+                                ->action(function (Get $get, Set $set): void {
+                                    $ids = (array) $get('commit_ids');
+
+                                    if (empty($ids)) {
+                                        Notification::make()
+                                            ->title('No commits selected')
+                                            ->body('Check at least one commit first.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $commits = GithubCommit::query()
+                                        ->with('repository')
+                                        ->where('user_id', Auth::id())
+                                        ->whereIn('id', $ids)
+                                        ->orderByDesc('committed_at')
+                                        ->get();
+
+                                    $content = $commits
+                                        ->map(fn (GithubCommit $commit): string => sprintf(
+                                            '<ul><li><strong>[%s] %s @ %s</strong><br>%s</li></ul>',
+                                            e($commit->repository?->full_name ?? ''),
+                                            e($commit->short_sha),
+                                            $commit->committed_at?->format('d M Y H:i'),
+                                            nl2br(e($commit->message)),
+                                        ))
+                                        ->implode('');
+
+                                    $current = (string) $get('description');
+                                    $set('description', $current.$content);
+
+                                    $set('commit_ids', []);
+
+                                    Notification::make()
+                                        ->title("Added {$commits->count()} commit(s)")
+                                        ->success()
+                                        ->send();
+                                }),
+                            Forms\Components\Actions\Action::make('ai_summary')
+                                ->label('AI Summary')
+                                ->icon('heroicon-o-sparkles')
+                                ->hiddenLabel(false)
+                                ->color('info')
+                                ->modalHeading('AI Summary')
+                                ->modalDescription('Generate a summary of the selected commits and append it to the description.')
+                                ->modalSubmitActionLabel('Generate & Add to Description')
+                                ->form([
+                                    Forms\Components\Textarea::make('prompt')
+                                        ->label('Prompt / Instructions')
+                                        ->rows(4)
+                                        ->default('Summarize the changes from these commits for a daily report. Write in clear bullet points using markdown.')
+                                        ->helperText('Customize how the AI should summarize your selected commits.'),
+                                ])
+                                ->action(function (Get $get, Set $set, array $data): void {
+                                    $ids = (array) $get('commit_ids');
+
+                                    if (empty($ids)) {
+                                        Notification::make()
+                                            ->title('No commits selected')
+                                            ->body('Check at least one commit first, then run AI Summary.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $commits = GithubCommit::query()
+                                        ->with('repository')
+                                        ->where('user_id', Auth::id())
+                                        ->whereIn('id', $ids)
+                                        ->orderByDesc('committed_at')
+                                        ->get();
+
+                                    $context = $commits
+                                        ->map(fn (GithubCommit $commit): string => sprintf(
+                                            '- [%s] %s: %s',
+                                            $commit->repository?->full_name ?? 'unknown repo',
+                                            $commit->short_sha,
+                                            str($commit->message)->before("\n")->toString(),
+                                        ))
+                                        ->implode("\n");
+
+                                    $system = 'You are an assistant that writes concise daily report summaries based on git commits.';
+
+                                    $prompt = trim((string) ($data['prompt'] ?? ''));
+
+                                    if ($prompt === '') {
+                                        $prompt = 'Summarize the changes from these commits for a daily report. Write in clear bullet points using markdown.';
+                                    }
+
+                                    $prompt .= "\n\nCommits:\n".$context;
+
+                                    try {
+                                        $summary = app(OllamaService::class)->chat($prompt, $system);
+
+                                        $content = sprintf(
+                                            '<p><strong>AI Summary</strong></p><p>%s</p>',
+                                            nl2br(e($summary)),
+                                        );
+
+                                        $current = (string) $get('description');
+                                        $set('description', $current.$content);
+
+                                        Notification::make()
+                                            ->title('AI summary added to description')
+                                            ->success()
+                                            ->send();
+                                    } catch (\Throwable $e) {
+                                        Notification::make()
+                                            ->title('AI summary failed')
+                                            ->body($e->getMessage())
+                                            ->danger()
+                                            ->send();
+                                    }
+                                }),
+                        ]),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(),
 
                 Forms\Components\Section::make('Attachments')
                     ->description('Upload any relevant images.')
@@ -116,11 +428,41 @@ class DailyReportResource extends Resource
                             ->reorderableWithButtons()
                             ->collapsible()
                             ->cloneable()
-                            ->itemLabel(fn(array $state): ?string => $state['caption'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['caption'] ?? null)
                             ->columns(2),
                     ]),
             ])
             ->columns(1);
+    }
+
+    public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    {
+        return $infolist
+            ->schema([
+                \Filament\Infolists\Components\Section::make('Report Information')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('report_date')
+                            ->label('Report Date')
+                            ->date('d/m/Y'),
+                        \Filament\Infolists\Components\TextEntry::make('subModule.module.name')
+                            ->label('Main Task'),
+                        \Filament\Infolists\Components\TextEntry::make('subModule.name')
+                            ->label('Sub Task / Platform'),
+                        \Filament\Infolists\Components\TextEntry::make('description')
+                            ->label('Description Task')
+                            ->formatStateUsing(function ($state) {
+                                if (empty($state)) return '-';
+                                $tasks = is_array($state) ? $state : [$state];
+                                $html = '<ul class="list-disc pl-5 space-y-1">';
+                                foreach ($tasks as $task) {
+                                    $html .= '<li>' . e($task) . '</li>';
+                                }
+                                $html .= '</ul>';
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpanFull(),
+                    ])->columns(3),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -129,9 +471,9 @@ class DailyReportResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->sortable()
-                    ->label("Member")
+                    ->label('Member')
                     ->searchable()
-                    ->weight(\Filament\Support\Enums\FontWeight::Bold),
+                    ->weight(FontWeight::Bold),
                 Tables\Columns\TextColumn::make('subModule.name')
                     ->sortable()
                     ->searchable()
@@ -165,11 +507,11 @@ class DailyReportResource extends Resource
                         return $query
                             ->when(
                                 $data['start_date'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('report_date', '>=', $date),
                             )
                             ->when(
                                 $data['until_date'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('report_date', '<=', $date),
                             );
                     })
                     ->columns(2)
@@ -177,6 +519,12 @@ class DailyReportResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ], layout: Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
+                Tables\Actions\Action::make('print')
+                    ->label('Print')
+                    ->icon('heroicon-o-printer')
+                    ->color('info')
+                    ->url(fn (DailyReport $record): string => route('daily-reports.print', ['date' => $record->report_date->format('Y-m-d')]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),
@@ -210,6 +558,7 @@ class DailyReportResource extends Resource
         if ($user && $user->hasRole('lead') && $user->sections()->exists()) {
             // Section lead can see reports of users in the same section
             $sectionIds = $user->sections->pluck('id')->toArray();
+
             return $query->whereHas('user.sections', function ($q) use ($sectionIds) {
                 $q->whereIn('sections.id', $sectionIds);
             });
@@ -233,5 +582,105 @@ class DailyReportResource extends Resource
             'create' => Pages\CreateDailyReport::route('/create'),
             'edit' => Pages\EditDailyReport::route('/{record}/edit'),
         ];
+    }
+
+    protected static function firstLine(?string $message): string
+    {
+        if (blank($message)) {
+            return '—';
+        }
+
+        return Str::of($message)
+            ->before("\n")
+            ->before("\r")
+            ->limit(100)
+            ->toString();
+    }
+
+    public static function formatPoaDescription(mixed $rawContent, ?string $fallbackTitle = null): array
+    {
+        if (empty($rawContent)) {
+            return filled($fallbackTitle) ? [trim(strip_tags($fallbackTitle))] : [];
+        }
+
+        $rawStrings = [];
+
+        if (is_array($rawContent)) {
+            $rawStrings = $rawContent;
+        } elseif (is_string($rawContent)) {
+            $decoded = json_decode($rawContent, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $rawStrings = $decoded;
+            } else {
+                $rawStrings = [$rawContent];
+            }
+        }
+
+        $tasks = [];
+
+        foreach ($rawStrings as $chunk) {
+            if (!is_string($chunk)) {
+                continue;
+            }
+
+            // 1. Convert block tags and <br> into newlines
+            $text = preg_replace('/<\s*br\s*\/?>/i', "\n", $chunk);
+            $text = preg_replace('/<\s*\/\s*(li|p|div|tr|h[1-6]|blockquote|section)\s*>/i', "\n", $text);
+            $text = preg_replace('/<\s*(li|p|div|tr|h[1-6]|blockquote|section)[^>]*>/i', "\n", $text);
+            $text = preg_replace('/<\s*\/?\s*(ul|ol|table|tbody|thead)[^>]*>/i', "\n", $text);
+
+            // 2. Decode non-breaking spaces and HTML entities
+            $text = str_replace(["\xc2\xa0", "\u{00a0}", '&nbsp;', '&#160;'], ' ', $text);
+            $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = str_replace(["\xc2\xa0", "\u{00a0}"], ' ', $text);
+
+            // 3. Strip any remaining inline HTML tags
+            $text = strip_tags($text);
+
+            // 4. Split by newlines
+            $lines = preg_split('/[\r\n]+/', $text);
+
+            $extractedLines = [];
+            foreach ($lines as $line) {
+                // Normalize excessive whitespace
+                $line = preg_replace('/[^\S\r\n]+/', ' ', $line);
+                // Normalize space before punctuation (e.g. "workflow , to" -> "workflow, to")
+                $line = preg_replace('/\s+([,.:;!?])/', '$1', $line);
+                // Strip leading bullet characters
+                $line = preg_replace('/^[-*•\x{2022}]\s*/u', '', $line);
+                $line = trim($line);
+
+                if ($line !== '') {
+                    $extractedLines[] = $line;
+                }
+            }
+
+            // 5. If only 1 line was extracted and it has bullet/dash separators, split them
+            if (count($extractedLines) === 1) {
+                $single = $extractedLines[0];
+                $split = array_filter(array_map('trim', preg_split('/(?<=\s|^)[-*•\x{2022}]\s+/u', $single)));
+                if (count($split) > 1) {
+                    $extractedLines = [];
+                    foreach ($split as $part) {
+                        $part = preg_replace('/[^\S\r\n]+/', ' ', $part);
+                        $part = preg_replace('/\s+([,.:;!?])/', '$1', $part);
+                        $part = trim($part);
+                        if ($part !== '') {
+                            $extractedLines[] = $part;
+                        }
+                    }
+                }
+            }
+
+            foreach ($extractedLines as $item) {
+                $tasks[] = $item;
+            }
+        }
+
+        if (empty($tasks) && filled($fallbackTitle)) {
+            $tasks[] = trim(strip_tags($fallbackTitle));
+        }
+
+        return $tasks;
     }
 }

@@ -78,23 +78,49 @@ class PlanOfActionResource extends Resource
                                     'module_id' => $get('module_id'),
                                 ])->getKey();
                             }),
-                        Forms\Components\RichEditor::make('description')
-                            ->columnSpanFull()
-                            ->toolbarButtons([
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'link',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'underline',
-                                'undo',
-                            ]),
+                        Forms\Components\Repeater::make('description')
+                            ->label('Description Task')
+                            ->simple(
+                                Forms\Components\Textarea::make('description')
+                                    ->required()
+                                    ->rows(3)
+                                    ->placeholder('Describe the task...')
+                            )
+                            ->defaultItems(1)
+                            ->addActionLabel('Add Another Task')
+                            ->reorderable(false)
+                            ->columnSpanFull(),
+                    ])->columns(3),
+            ]);
+    }
+
+    public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    {
+        return $infolist
+            ->schema([
+                \Filament\Infolists\Components\Section::make('Plan of Action Information')
+                    ->description('Provide the details of your plan of action.')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('start_date')
+                            ->label('POA Date')
+                            ->date('d/m/Y'),
+                        \Filament\Infolists\Components\TextEntry::make('module.name')
+                            ->label('Main Task'),
+                        \Filament\Infolists\Components\TextEntry::make('subModule.name')
+                            ->label('Sub Task / Platform'),
+                        \Filament\Infolists\Components\TextEntry::make('description')
+                            ->label('Description Task')
+                            ->formatStateUsing(function ($state) {
+                                if (empty($state)) return '-';
+                                $tasks = is_array($state) ? $state : [$state];
+                                $html = '<ul class="list-disc pl-5 space-y-1">';
+                                foreach ($tasks as $task) {
+                                    $html .= '<li>' . e($task) . '</li>';
+                                }
+                                $html .= '</ul>';
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpanFull(),
                     ])->columns(3),
             ]);
     }

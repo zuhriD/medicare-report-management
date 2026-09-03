@@ -29,37 +29,66 @@ class ListPlanOfActions extends ListRecords
                 ->modalIcon('heroicon-o-document-text')
                 ->modalWidth('3xl')
                 ->modalSubmitAction(false)
-                ->modalContent(function () {
-                    $poas = PlanOfAction::with(['user', 'module', 'subModule'])
-                        ->whereNotNull('user_id')
-                        ->orderBy('created_at', 'desc')
-                        ->get()
-                        ->groupBy(function ($poa) {
-                            // Group by team - if you add company relationship later, use: $poa->user?->company?->name
-                            return 'MEDIKCARE';
-                        });
-                    
-                    $recapText = $this->generateRecapText($poas);
-                    
-                    return Section::make()
-                        ->schema([])
-                        ->view('poa.recap-modal', [
-                            'poas' => $poas,
-                            'recapText' => $recapText,
-                        ]);
-                });
+                ->form([
+                    \Filament\Forms\Components\DatePicker::make('recap_date')
+                        ->label('Select Date')
+                        ->default(now()->toDateString())
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->live(),
+                    \Filament\Forms\Components\Placeholder::make('recap_content')
+                        ->hiddenLabel()
+                        ->content(function (\Filament\Forms\Get $get) {
+                            $rawDate = $get('recap_date') ?? now()->toDateString();
+                            
+                            try {
+                                if (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+                                    $dateObj = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate);
+                                } else {
+                                    $dateObj = \Illuminate\Support\Carbon::parse($rawDate);
+                                }
+                            } catch (\Throwable $e) {
+                                $dateObj = now();
+                            }
+                            
+                            $dbDate = $dateObj->format('Y-m-d');
+                            
+                            $poas = PlanOfAction::with(['user', 'module', 'subModule'])
+                                ->whereNotNull('user_id')
+                                ->whereDate('start_date', $dbDate)
+                                ->orderBy('created_at', 'desc')
+                                ->get()
+                                ->groupBy(function ($poa) {
+                                    return 'MEDIKCARE';
+                                });
+                            
+                            $recapText = $this->generateRecapText($poas, $dateObj);
+                            
+                            return new \Illuminate\Support\HtmlString(
+                                view('poa.recap-modal', [
+                                    'poas' => $poas,
+                                    'recapText' => $recapText,
+                                    'selectedDate' => $dbDate,
+                                ])->render()
+                            );
+                        }),
+                ]);
         }
         
         return $actions;
     }
     
-    private function generateRecapText($poas): string
+    private function generateRecapText($poas, \Illuminate\Support\Carbon $dateObj): string
     {
-        $today = now();
-        $dateStr = $today->format('d/m/Y') . ' (' . $today->format('l') . ')';
+        $dateStr = $dateObj->format('d/m/Y') . ' (' . $dateObj->format('l') . ')';
         
-        $text = "DAILY ACHIEVEMENT & DEVELOPMENT REPORT\nDate: {$dateStr}\n\n";
+        $text = "PLAN OF ACTION\nDate: {$dateStr}\n\n";
         
+        if ($poas->isEmpty()) {
+            $text .= "No Plan of Action records found for {$dateStr}.";
+            return $text;
+        }
+
         foreach ($poas as $team => $teamPoas) {
             $text .= " {$team}\n";
             $counter = 1;
@@ -73,13 +102,14 @@ class ListPlanOfActions extends ListRecords
                 foreach ($userPoas as $poa) {
                     $text .= "{$poa->module?->name} | {$poa->subModule?->name}\n";
                     
-                    // Strip HTML tags from description and split by bullet points
-                    $cleanDescription = strip_tags($poa->description ?? '');
-                    $tasks = array_filter(array_map('trim', explode('-', $cleanDescription)));
+                    $tasks = is_array($poa->description)
+                        ? $poa->description
+                        : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
                     if (!empty($tasks)) {
                         foreach ($tasks as $task) {
-                            if ($task) {
-                                $text .= "- {$task}\n";
+                            $cleanTask = trim(strip_tags($task));
+                            if ($cleanTask) {
+                                $text .= "- {$cleanTask}\n";
                             }
                         }
                     }
