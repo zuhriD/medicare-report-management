@@ -11,13 +11,17 @@ use Illuminate\Support\Carbon;
 
 class PoaActRecapService
 {
-    public function generateRecap(string $rawDate): array
+    public function generateRecap(mixed $rawDate): array
     {
         try {
-            if (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+            if ($rawDate instanceof \DateTimeInterface) {
+                $dateObj = Carbon::instance($rawDate);
+            } elseif (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
                 $dateObj = Carbon::createFromFormat('d/m/Y', $rawDate);
-            } else {
+            } elseif (is_string($rawDate) && filled($rawDate)) {
                 $dateObj = Carbon::parse($rawDate);
+            } else {
+                $dateObj = now();
             }
         } catch (\Throwable $e) {
             $dateObj = now();
@@ -27,7 +31,7 @@ class PoaActRecapService
         $dateStr = $dateObj->format('d/m/Y') . ' (' . $dateObj->format('l') . ')';
 
         // Retrieve POAs for selected date
-        $poas = PlanOfAction::with(['user', 'module', 'subModule'])
+        $poas = PlanOfAction::with(['user', 'module', 'subModule.module'])
             ->whereNotNull('user_id')
             ->whereDate('start_date', $dbDate)
             ->get();
@@ -38,20 +42,21 @@ class PoaActRecapService
             ->whereDate('report_date', $dbDate)
             ->get();
 
-        // Collect all unique user IDs
+        // Collect all unique user IDs that have either POA or ACT
         $userIds = $poas->pluck('user_id')
             ->concat($acts->pluck('user_id'))
             ->unique()
-            ->filter();
+            ->filter()
+            ->values();
 
         $users = User::whereIn('id', $userIds)->orderBy('name')->get();
 
         $text = "PLAN OF ACTION (POA) & ACHIEVEMENT (ACT) REPORT\n";
         $text .= "Date: {$dateStr}\n\n";
-        $text .= "MEDIKCARE\n\n";
 
         if ($users->isEmpty()) {
             $text .= "No Plan of Action or ACT Report records found for {$dateStr}.";
+
             return [
                 'dateStr' => $dateStr,
                 'dbDate' => $dbDate,
@@ -62,67 +67,63 @@ class PoaActRecapService
         }
 
         $counter = 1;
+        $userBlocks = [];
+
         foreach ($users as $user) {
             $userPoas = $poas->where('user_id', $user->id);
             $userActs = $acts->where('user_id', $user->id);
 
-            $text .= "{$counter}. {$user->name} POA\n";
+            $block = "{$counter}. {$user->name} POA\n\n";
 
             // Process POA records
             if ($userPoas->isNotEmpty()) {
                 $groupedPoas = $userPoas->groupBy(function ($poa) {
-                    return $this->formatModuleLabel($poa->module, $poa->subModule);
+                    $module = $poa->module ?? $poa->subModule?->module;
+                    return $this->formatModuleLabel($module, $poa->subModule);
                 });
 
                 foreach ($groupedPoas as $groupLabel => $items) {
-                    $text .= "   {$groupLabel}\n";
+                    $block .= "   {$groupLabel}\n";
                     foreach ($items as $poa) {
-                        $tasks = is_array($poa->description)
-                            ? $poa->description
-                            : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
-
+                        $rawContent = $poa->getRawOriginal('description') ?? $poa->description;
+                        $tasks = \App\Filament\Resources\DailyReportResource::formatPoaDescription($rawContent, $poa->title ?? null);
                         foreach ($tasks as $task) {
-                            $cleanTask = trim(strip_tags($task));
-                            if ($cleanTask) {
-                                $text .= "   - {$cleanTask}\n";
-                            }
+                            $block .= "   - {$task}\n";
                         }
                     }
-                    $text .= "\n";
+                    $block .= "\n";
                 }
             } else {
-                $text .= "   (No POA submitted for this date)\n\n";
+                $block .= "   (No POA submitted for this date)\n\n";
             }
 
             // Process ACT Report records
-            $text .= "   ACT Report\n";
+            $block .= "   ACT Report\n\n";
             if ($userActs->isNotEmpty()) {
                 $groupedActs = $userActs->groupBy(function ($act) {
                     return $this->formatModuleLabel($act->subModule?->module, $act->subModule);
                 });
 
                 foreach ($groupedActs as $groupLabel => $items) {
-                    $text .= "   {$groupLabel}\n";
+                    $block .= "   {$groupLabel}\n";
                     foreach ($items as $act) {
-                        $tasks = is_array($act->description)
-                            ? $act->description
-                            : array_filter(array_map('trim', explode('-', strip_tags($act->description ?? ''))));
-
+                        $rawContent = $act->getRawOriginal('description') ?? $act->description;
+                        $tasks = \App\Filament\Resources\DailyReportResource::formatPoaDescription($rawContent);
                         foreach ($tasks as $task) {
-                            $cleanTask = trim(strip_tags($task));
-                            if ($cleanTask) {
-                                $text .= "   - {$cleanTask}\n";
-                            }
+                            $block .= "   - {$task}\n";
                         }
                     }
-                    $text .= "\n";
+                    $block .= "\n";
                 }
             } else {
-                $text .= "   (No ACT Report submitted for this date)\n\n";
+                $block .= "   (No ACT Report submitted for this date)\n\n";
             }
 
+            $userBlocks[] = rtrim($block);
             $counter++;
         }
+
+        $text .= implode("\n\n", $userBlocks);
 
         return [
             'dateStr' => $dateStr,
@@ -133,24 +134,60 @@ class PoaActRecapService
         ];
     }
 
+    private function extractTasks(mixed $description, ?string $fallback = null): array
+    {
+        $tasks = [];
+        if (is_array($description)) {
+            $tasks = $description;
+        } elseif (is_string($description)) {
+            $decoded = json_decode($description, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $tasks = $decoded;
+            } else {
+                $clean = trim(strip_tags($description));
+                $tasks = array_values(array_filter(array_map('trim', preg_split('/[\n\r]+|(?<=\s)-\s/', $clean))));
+                if (empty($tasks) && $clean !== '') {
+                    $tasks = [$clean];
+                }
+            }
+        }
+
+        $result = [];
+        foreach ($tasks as $task) {
+            if (is_string($task)) {
+                $clean = trim(strip_tags($task));
+                $clean = preg_replace('/^[-*•]\s*/u', '', $clean);
+                if ($clean !== '') {
+                    $result[] = $clean;
+                }
+            }
+        }
+
+        if (empty($result) && filled($fallback)) {
+            $cleanFallback = preg_replace('/^[-*•]\s*/u', '', trim(strip_tags($fallback)));
+            if ($cleanFallback !== '') {
+                $result[] = $cleanFallback;
+            }
+        }
+
+        return $result;
+    }
+
     private function formatModuleLabel(?Module $module, ?SubModule $subModule): string
     {
         $moduleName = $module?->name;
         $subName = $subModule?->name;
 
         if ($moduleName && $subName) {
-            if (strtolower($moduleName) === 'general' || $moduleName === $subName) {
-                return $subName;
-            }
             return "{$moduleName} | {$subName}";
         }
 
-        if ($subName) {
-            return $subName;
+        if ($moduleName && !$subName) {
+            return "{$moduleName} | No Sub";
         }
 
-        if ($moduleName) {
-            return "{$moduleName} | No Sub";
+        if (!$moduleName && $subName) {
+            return "General | {$subName}";
         }
 
         return "General | No Sub";

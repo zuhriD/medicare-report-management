@@ -16,7 +16,7 @@ class ListDailyReports extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
+        $actions = [
             Actions\Action::make('print_daily_report')
                 ->label('Print Daily Report')
                 ->icon('heroicon-o-printer')
@@ -37,16 +37,16 @@ class ListDailyReports extends ListRecords
                     $url = route('daily-reports.print', ['date' => $date]);
                     $this->js("window.open('{$url}', '_blank')");
                 }),
-            Actions\CreateAction::make(),
         ];
 
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if ($user && ($user->hasRole('super_admin') || $user->hasRole('admin'))) {
             $actions[] = Actions\Action::make('poa_act_recap')
-                ->label('POA & ACT Report')
+                ->label('POA & ACT Recap')
                 ->icon('heroicon-m-document-text')
-                ->color('info')
+                ->color('primary')
+                ->visible(fn () => auth()->user()?->hasAnyRole(['admin', 'super_admin']))
                 ->modalHeading('PLAN OF ACTION (POA) & ACHIEVEMENT (ACT) RECAP')
                 ->modalIcon('heroicon-o-document-text')
                 ->modalWidth('4xl')
@@ -68,13 +68,15 @@ class ListDailyReports extends ListRecords
                                 view('daily-reports.poa-act-recap-modal', [
                                     'recapText' => $recapData['recapText'],
                                     'dateStr' => $recapData['dateStr'],
+                                    'dbDate' => $recapData['dbDate'],
                                 ])->render()
                             );
                         }),
                 ]);
         }
 
+        $actions[] = Actions\CreateAction::make();
+
         return $actions;
     }
 }
-

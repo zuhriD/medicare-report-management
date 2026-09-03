@@ -88,24 +88,29 @@ class DailyReportResource extends Resource
                         Forms\Components\Placeholder::make('poa_today')
                             ->label('Your Plan of Action Today')
                             ->columnSpanFull()
-                            ->content(function (Forms\Get $get, $record) {
-                                $rawDate = $get('report_date') ?? $record?->report_date ?? now()->toDateString();
+                            ->content(function (Forms\Get $get, ?DailyReport $record) {
+                                $userId = $record?->user_id ?? Auth::id();
 
-                                try {
-                                    if (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
-                                        $dateObj = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate);
-                                    } else {
-                                        $dateObj = \Illuminate\Support\Carbon::parse($rawDate);
-                                    }
-                                } catch (\Throwable $e) {
-                                    $dateObj = now();
+                                if (! $userId) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
                                 }
 
-                                $dbDate = $dateObj->format('Y-m-d');
-                                $userId = Auth::id() ?? $record?->user_id;
+                                $rawDate = $get('report_date') ?? $record?->report_date ?? session('last_report_date') ?? now()->toDateString();
 
-                                if (!$userId) {
+                                if (blank($rawDate)) {
                                     return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                try {
+                                    if ($rawDate instanceof \DateTimeInterface) {
+                                        $dbDate = $rawDate->format('Y-m-d');
+                                    } elseif (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+                                        $dbDate = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate)->format('Y-m-d');
+                                    } else {
+                                        $dbDate = \Illuminate\Support\Carbon::parse($rawDate)->format('Y-m-d');
+                                    }
+                                } catch (\Throwable $e) {
+                                    $dbDate = now()->format('Y-m-d');
                                 }
 
                                 $poas = \App\Models\PlanOfAction::with(['module', 'subModule'])
@@ -127,18 +132,18 @@ class DailyReportResource extends Resource
                                         $html .= '<div class="font-semibold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">' . e($label) . '</div>';
                                     }
 
-                                    $tasks = is_array($poa->description)
-                                        ? $poa->description
-                                        : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
+                                    $rawContent = $poa->getRawOriginal('description') ?? $poa->description;
+                                    $tasks = self::formatPoaDescription($rawContent, $poa->title ?? null);
 
-                                    $html .= '<ul class="space-y-1 list-none pl-1 text-sm text-gray-700 dark:text-white">';
+                                    $html .= '<div class="space-y-1 text-sm text-gray-700 dark:text-white">';
                                     foreach ($tasks as $task) {
-                                        $cleanTask = trim(strip_tags($task));
-                                        if ($cleanTask) {
-                                            $html .= '<li class="flex items-start gap-2"><span class="text-indigo-500 font-bold">•</span><span>' . e($cleanTask) . '</span></li>';
+                                        if (preg_match('/^[A-Za-z0-9\s\-_()\/&]+:$/u', $task)) {
+                                            $html .= '<div class="font-semibold text-xs text-gray-800 dark:text-gray-200 mt-2 mb-1">' . e($task) . '</div>';
+                                        } else {
+                                            $html .= '<div class="flex items-start gap-2 pl-1"><span class="text-indigo-500 font-bold select-none">•</span><span>' . e($task) . '</span></div>';
                                         }
                                     }
-                                    $html .= '</ul>';
+                                    $html .= '</div>';
                                 }
                                 $html .= '</div>';
 
@@ -590,5 +595,92 @@ class DailyReportResource extends Resource
             ->before("\r")
             ->limit(100)
             ->toString();
+    }
+
+    public static function formatPoaDescription(mixed $rawContent, ?string $fallbackTitle = null): array
+    {
+        if (empty($rawContent)) {
+            return filled($fallbackTitle) ? [trim(strip_tags($fallbackTitle))] : [];
+        }
+
+        $rawStrings = [];
+
+        if (is_array($rawContent)) {
+            $rawStrings = $rawContent;
+        } elseif (is_string($rawContent)) {
+            $decoded = json_decode($rawContent, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $rawStrings = $decoded;
+            } else {
+                $rawStrings = [$rawContent];
+            }
+        }
+
+        $tasks = [];
+
+        foreach ($rawStrings as $chunk) {
+            if (!is_string($chunk)) {
+                continue;
+            }
+
+            // 1. Convert block tags and <br> into newlines
+            $text = preg_replace('/<\s*br\s*\/?>/i', "\n", $chunk);
+            $text = preg_replace('/<\s*\/\s*(li|p|div|tr|h[1-6]|blockquote|section)\s*>/i', "\n", $text);
+            $text = preg_replace('/<\s*(li|p|div|tr|h[1-6]|blockquote|section)[^>]*>/i', "\n", $text);
+            $text = preg_replace('/<\s*\/?\s*(ul|ol|table|tbody|thead)[^>]*>/i', "\n", $text);
+
+            // 2. Decode non-breaking spaces and HTML entities
+            $text = str_replace(["\xc2\xa0", "\u{00a0}", '&nbsp;', '&#160;'], ' ', $text);
+            $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = str_replace(["\xc2\xa0", "\u{00a0}"], ' ', $text);
+
+            // 3. Strip any remaining inline HTML tags
+            $text = strip_tags($text);
+
+            // 4. Split by newlines
+            $lines = preg_split('/[\r\n]+/', $text);
+
+            $extractedLines = [];
+            foreach ($lines as $line) {
+                // Normalize excessive whitespace
+                $line = preg_replace('/[^\S\r\n]+/', ' ', $line);
+                // Normalize space before punctuation (e.g. "workflow , to" -> "workflow, to")
+                $line = preg_replace('/\s+([,.:;!?])/', '$1', $line);
+                // Strip leading bullet characters
+                $line = preg_replace('/^[-*•\x{2022}]\s*/u', '', $line);
+                $line = trim($line);
+
+                if ($line !== '') {
+                    $extractedLines[] = $line;
+                }
+            }
+
+            // 5. If only 1 line was extracted and it has bullet/dash separators, split them
+            if (count($extractedLines) === 1) {
+                $single = $extractedLines[0];
+                $split = array_filter(array_map('trim', preg_split('/(?<=\s|^)[-*•\x{2022}]\s+/u', $single)));
+                if (count($split) > 1) {
+                    $extractedLines = [];
+                    foreach ($split as $part) {
+                        $part = preg_replace('/[^\S\r\n]+/', ' ', $part);
+                        $part = preg_replace('/\s+([,.:;!?])/', '$1', $part);
+                        $part = trim($part);
+                        if ($part !== '') {
+                            $extractedLines[] = $part;
+                        }
+                    }
+                }
+            }
+
+            foreach ($extractedLines as $item) {
+                $tasks[] = $item;
+            }
+        }
+
+        if (empty($tasks) && filled($fallbackTitle)) {
+            $tasks[] = trim(strip_tags($fallbackTitle));
+        }
+
+        return $tasks;
     }
 }
