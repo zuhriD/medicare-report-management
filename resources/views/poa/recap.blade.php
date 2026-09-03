@@ -265,14 +265,16 @@
                             <div class="poa-task">{{ $poa->module->name ?? 'N/A' }} | {{ $poa->subModule->name ?? 'N/A' }}</div>
                             <ul class="poa-subtasks">
                                 @php
-                                    $tasks = array_filter(array_map('trim', explode('-', $poa->description ?? '')));
+                                    $tasks = is_array($poa->description) 
+                                        ? $poa->description 
+                                        : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
                                 @endphp
                                 @forelse ($tasks as $task)
-                                    @if ($task)
-                                        <li>{{ $task }}</li>
+                                    @if (trim(strip_tags($task)))
+                                        <li>{{ trim(strip_tags($task)) }}</li>
                                     @endif
                                 @empty
-                                    <li>{{ $poa->description ?? 'No tasks' }}</li>
+                                    <li>No tasks</li>
                                 @endforelse
                             </ul>
                         </div>
@@ -315,14 +317,16 @@ Not Submitted: {{ $notSubmittedMembers->count() }}
 Module: {{ $poa->module->name ?? 'N/A' }}
 {{ $poa->module->name ?? 'N/A' }} | {{ $poa->subModule->name ?? 'N/A' }}
             @php
-                $tasks = array_filter(array_map('trim', explode('-', $poa->description ?? '')));
+                $tasks = is_array($poa->description) 
+                    ? $poa->description 
+                    : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
             @endphp
             @forelse ($tasks as $task)
-                @if ($task)
-- {{ $task }}
+                @if (trim(strip_tags($task)))
+- {{ trim(strip_tags($task)) }}
                 @endif
             @empty
-- {{ $poa->description ?? 'No tasks' }}
+- No tasks
             @endforelse
 
         @endforeach

@@ -14,6 +14,7 @@ class DailyReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
+        'description' => 'array',
     ];
 
     public function user()

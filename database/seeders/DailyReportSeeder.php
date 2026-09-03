@@ -24,7 +24,7 @@ class DailyReportSeeder extends Seeder
                 'user_id' => $developerA->id,
                 'sub_module_id' => $sub1a->id,
                 'report_date' => Carbon::now()->toDateString(),
-                'description' => 'Implemented patient selection flow.',
+                'description' => ['Implemented patient selection flow.'],
             ]);
         }
     }

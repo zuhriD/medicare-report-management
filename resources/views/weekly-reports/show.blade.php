@@ -103,10 +103,15 @@
 
                     <div class="space-y-3 mb-2">
                         @foreach($reports as $report)
-                        <div class="flex items-start text-gray-700">
-                            <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                            <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! $report->description !!}</div>
-                        </div>
+                            @php
+                                $tasks = is_array($report->description) ? $report->description : [$report->description];
+                            @endphp
+                            @foreach($tasks as $task)
+                            <div class="flex items-start text-gray-700">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
+                                <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! e($task) !!}</div>
+                            </div>
+                            @endforeach
                         @endforeach
                     </div>
 
@@ -166,10 +171,15 @@
                             <h4 class="text-sm font-bold text-gray-700 mb-3 bg-gray-100 inline-block px-3 py-1 rounded-md">{{ $groupTitle }}</h4>
                             <div class="space-y-3 pl-2">
                                 @foreach($groupReports as $report)
-                                <div class="flex items-start text-gray-700">
-                                    <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                                    <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! $report->description !!}</div>
-                                </div>
+                                    @php
+                                        $tasks = is_array($report->description) ? $report->description : [$report->description];
+                                    @endphp
+                                    @foreach($tasks as $task)
+                                    <div class="flex items-start text-gray-700">
+                                        <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
+                                        <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{!! e($task) !!}</div>
+                                    </div>
+                                    @endforeach
                                 @endforeach
                             </div>
                         </div>

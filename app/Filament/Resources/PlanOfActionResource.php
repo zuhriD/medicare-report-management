@@ -78,23 +78,18 @@ class PlanOfActionResource extends Resource
                                     'module_id' => $get('module_id'),
                                 ])->getKey();
                             }),
-                        Forms\Components\RichEditor::make('description')
-                            ->columnSpanFull()
-                            ->toolbarButtons([
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'link',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'underline',
-                                'undo',
-                            ]),
+                        Forms\Components\Repeater::make('description')
+                            ->label('Description Task')
+                            ->simple(
+                                Forms\Components\Textarea::make('description')
+                                    ->required()
+                                    ->rows(3)
+                                    ->placeholder('Describe the task...')
+                            )
+                            ->defaultItems(1)
+                            ->addActionLabel('Add Another Task')
+                            ->reorderable(false)
+                            ->columnSpanFull(),
                     ])->columns(3),
             ]);
     }
