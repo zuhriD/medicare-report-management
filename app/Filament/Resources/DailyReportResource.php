@@ -34,7 +34,8 @@ class DailyReportResource extends Resource
                             ->required()
                             ->default(session('last_report_date', now()))
                             ->native(false)
-                            ->displayFormat('d/m/Y'),
+                            ->displayFormat('d/m/Y')
+                            ->live(),
                         Forms\Components\Select::make('module_id')
                             ->label('Main Task')
                             ->options(\App\Models\Module::pluck('name', 'id'))
@@ -73,6 +74,65 @@ class DailyReportResource extends Resource
                                     'name' => $data['name'],
                                     'module_id' => $get('module_id'),
                                 ])->getKey();
+                            }),
+                        Forms\Components\Placeholder::make('poa_today')
+                            ->label('Your Plan of Action Today')
+                            ->columnSpanFull()
+                            ->content(function (Forms\Get $get, $record) {
+                                $rawDate = $get('report_date') ?? $record?->report_date ?? now()->toDateString();
+
+                                try {
+                                    if (is_string($rawDate) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawDate)) {
+                                        $dateObj = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $rawDate);
+                                    } else {
+                                        $dateObj = \Illuminate\Support\Carbon::parse($rawDate);
+                                    }
+                                } catch (\Throwable $e) {
+                                    $dateObj = now();
+                                }
+
+                                $dbDate = $dateObj->format('Y-m-d');
+                                $userId = Auth::id() ?? $record?->user_id;
+
+                                if (!$userId) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                $poas = \App\Models\PlanOfAction::with(['module', 'subModule'])
+                                    ->where('user_id', $userId)
+                                    ->whereDate('start_date', $dbDate)
+                                    ->get();
+
+                                if ($poas->isEmpty()) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic dark:text-gray-400">No Plan of Action for today.</p>');
+                                }
+
+                                $html = '<div class="space-y-3 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">';
+                                foreach ($poas as $poa) {
+                                    $moduleName = $poa->module?->name;
+                                    $subName = $poa->subModule?->name;
+                                    $label = ($moduleName && $subName) ? "{$moduleName} | {$subName}" : ($subName ?? $moduleName ?? '');
+
+                                    if ($label) {
+                                        $html .= '<div class="font-semibold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">' . e($label) . '</div>';
+                                    }
+
+                                    $tasks = is_array($poa->description)
+                                        ? $poa->description
+                                        : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
+
+                                    $html .= '<ul class="space-y-1 list-none pl-1 text-sm text-gray-700 dark:text-white">';
+                                    foreach ($tasks as $task) {
+                                        $cleanTask = trim(strip_tags($task));
+                                        if ($cleanTask) {
+                                            $html .= '<li class="flex items-start gap-2"><span class="text-indigo-500 font-bold">•</span><span>' . e($cleanTask) . '</span></li>';
+                                        }
+                                    }
+                                    $html .= '</ul>';
+                                }
+                                $html .= '</div>';
+
+                                return new \Illuminate\Support\HtmlString($html);
                             }),
                         Forms\Components\Repeater::make('description')
                             ->label('Description Task')
@@ -115,6 +175,36 @@ class DailyReportResource extends Resource
                     ]),
             ])
             ->columns(1);
+    }
+
+    public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    {
+        return $infolist
+            ->schema([
+                \Filament\Infolists\Components\Section::make('Report Information')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('report_date')
+                            ->label('Report Date')
+                            ->date('d/m/Y'),
+                        \Filament\Infolists\Components\TextEntry::make('subModule.module.name')
+                            ->label('Main Task'),
+                        \Filament\Infolists\Components\TextEntry::make('subModule.name')
+                            ->label('Sub Task / Platform'),
+                        \Filament\Infolists\Components\TextEntry::make('description')
+                            ->label('Description Task')
+                            ->formatStateUsing(function ($state) {
+                                if (empty($state)) return '-';
+                                $tasks = is_array($state) ? $state : [$state];
+                                $html = '<ul class="list-disc pl-5 space-y-1">';
+                                foreach ($tasks as $task) {
+                                    $html .= '<li>' . e($task) . '</li>';
+                                }
+                                $html .= '</ul>';
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpanFull(),
+                    ])->columns(3),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -171,6 +261,7 @@ class DailyReportResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ], layout: Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
+                Tables\Actions\ViewAction::make()->modal(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),

@@ -293,69 +293,6 @@
                 @endforeach
             </div>
         @endif
-        
-        <button class="copy-button" onclick="copyToClipboard()">📋 Copy All Text</button>
-        <div class="copy-message" id="copyMessage">Copied to clipboard!</div>
     </div>
-
-    <div class="recap-section" id="recapContent">
-MEDIKCARE - RECAP POA
-
-SUMMARY
-Total Team Members: {{ $allTeamMembers->count() }}
-Submitted POA: {{ $submittedCount }}
-Not Submitted: {{ $notSubmittedMembers->count() }}
-
-@if (!$poas->isEmpty())
-    @php $counter = 1; @endphp
-    @foreach ($poas as $userId => $userPoas)
-        @php
-            $userName = $userPoas->first()?->user?->name ?? 'Unknown';
-        @endphp
-{{ $counter }}. {{ $userName }} (WFO) - ✅ Submitted
-        @foreach ($userPoas as $poa)
-Module: {{ $poa->module->name ?? 'N/A' }}
-{{ $poa->module->name ?? 'N/A' }} | {{ $poa->subModule->name ?? 'N/A' }}
-            @php
-                $tasks = is_array($poa->description) 
-                    ? $poa->description 
-                    : array_filter(array_map('trim', explode('-', strip_tags($poa->description ?? ''))));
-            @endphp
-            @forelse ($tasks as $task)
-                @if (trim(strip_tags($task)))
-- {{ trim(strip_tags($task)) }}
-                @endif
-            @empty
-- No tasks
-            @endforelse
-
-        @endforeach
-        @php $counter++; @endphp
-    @endforeach
-@endif
-
-@if ($notSubmittedMembers->count() > 0)
-MEMBERS WHO HAVEN'T SUBMITTED
-@foreach ($notSubmittedMembers as $member)
-❌ {{ $member->name }}
-@endforeach
-@endif
-    </div>
-
-    <script>
-        function copyToClipboard() {
-            const text = document.getElementById('recapContent').innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                const message = document.getElementById('copyMessage');
-                message.style.display = 'block';
-                setTimeout(() => {
-                    message.style.display = 'none';
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                alert('Failed to copy text');
-            });
-        }
-    </script>
 </body>
 </html>

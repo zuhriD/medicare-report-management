@@ -14,8 +14,37 @@ class DailyReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
-        'description' => 'array',
     ];
+
+    protected function description(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if (empty($value)) {
+                    return [];
+                }
+                if (is_array($value)) {
+                    return $value;
+                }
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return array_values($decoded);
+                }
+                $clean = trim(strip_tags($value));
+                if (empty($clean)) {
+                    return [trim($value)];
+                }
+                $lines = array_values(array_filter(array_map('trim', preg_split('/[\n\r]+|(?<=\s)-\s/', $clean))));
+                return !empty($lines) ? $lines : [$clean];
+            },
+            set: function ($value) {
+                if (is_array($value)) {
+                    return json_encode(array_values(array_filter($value, fn($item) => filled($item))));
+                }
+                return $value;
+            }
+        );
+    }
 
     public function user()
     {
