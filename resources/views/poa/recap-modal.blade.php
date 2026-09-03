@@ -5,7 +5,7 @@
     @endphp
     
     <div class="text-center text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">
-        <div>DAILY ACHIEVEMENT & DEVELOPMENT REPORT</div>
+        <div>Plan Of Action</div>
         <div>Date: {{ $dateStr }}</div>
     </div>
     

@@ -82,7 +82,7 @@ class ListPlanOfActions extends ListRecords
     {
         $dateStr = $dateObj->format('d/m/Y') . ' (' . $dateObj->format('l') . ')';
         
-        $text = "DAILY ACHIEVEMENT & DEVELOPMENT REPORT\nDate: {$dateStr}\n\n";
+        $text = "PLAN OF ACTION\nDate: {$dateStr}\n\n";
         
         if ($poas->isEmpty()) {
             $text .= "No Plan of Action records found for {$dateStr}.";
