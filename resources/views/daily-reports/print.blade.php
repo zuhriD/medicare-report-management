@@ -390,8 +390,19 @@
                     </div>
 
                     <div class="description">
-                        {!! $report->description !!}
-                    </div>
+    @php
+        $rawDescription = $report->getRawOriginal('description') ?? $report->description;
+        $tasks = \App\Models\DailyReport::parseTasks($rawDescription);
+    @endphp
+
+    @if (!empty($tasks))
+        <ul>
+            @foreach ($tasks as $task)
+                <li>{{ $task }}</li>
+            @endforeach
+        </ul>
+    @endif
+</div>
 
                     @if ($report->reportImages->isNotEmpty())
                         <div class="images-grid">

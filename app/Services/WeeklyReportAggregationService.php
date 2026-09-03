@@ -87,7 +87,7 @@ class WeeklyReportAggregationService
             ->map(function (DailyReport $report): string {
                 $moduleName = $report->module?->name ?? 'General';
 
-                return sprintf('%s | %s | %s', $report->report_date->format('d M Y'), $moduleName, $report->progress_text);
+                $rawDescription = $report->getRawOriginal('description'); $decoded = json_decode($rawDescription, true); if (is_array($decoded)) { $tasks = array_map( fn ($task) => trim(strip_tags((string) $task)), $decoded ); } else { $tasks = [trim(strip_tags((string) $rawDescription))]; } $tasks = array_filter($tasks); return sprintf( 'TEST | %s | %s', $moduleName, implode(', ', $tasks) );
             })
             ->implode("\n");
     }

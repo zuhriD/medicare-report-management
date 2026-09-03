@@ -52,95 +52,159 @@
         </div>
 
         <div class="mb-12">
-            <h2 class="text-2xl font-bold text-gray-800 border-b-2 border-indigo-500 pb-2 mb-6">Progress</h2>
+    <h2 class="text-2xl font-bold text-gray-800 border-b-2 border-indigo-500 pb-2 mb-6">Progress</h2>
 
-            @php
-            $groupedByModule = collect($groupedByModule)
+    @php
+        $groupedByModule = collect($groupedByModule)
             ->filter(function($subModules, $moduleName) {
-            return !str_contains(strtolower($moduleName), 'nexusmed');
+                return !str_contains(strtolower($moduleName), 'nexusmed');
             })
             ->sortBy(function($subModules, $moduleName) {
-            return str_contains(strtolower($moduleName), 'general') ? 0 : 1;
+                return str_contains(strtolower($moduleName), 'general') ? 0 : 1;
             });
-            @endphp
+    @endphp
 
-            @foreach($groupedByModule as $moduleName => $subModules)
-            <div class="mb-8">
-                <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-3">
-                    {{ $moduleName }}
-                    @php
-                    $firstReport = collect($subModules)->first()->first();
-                    $modulePhase = $firstReport && $firstReport->subModule && $firstReport->subModule->module ? $firstReport->subModule->module->phase : null;
-                    @endphp
-                    @if($modulePhase)
-                    @php
-                    $isTesting = str_contains(strtolower($modulePhase), 'testing');
-                    $badgeClasses = $isTesting ? 'bg-green-100 text-green-800 border-green-200' : 'bg-blue-100 text-blue-800 border-blue-200';
-                    @endphp
-                    <span class="{{ $badgeClasses }} text-sm font-medium px-2.5 py-0.5 rounded border">{{ ucfirst($modulePhase) }}</span>
-                    @endif
-                </h3>
+    @foreach($groupedByModule as $moduleName => $subModules)
+        <div class="mb-8">
 
-                @foreach($subModules as $subModuleName => $reports)
+            <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-3">
+                {{ $moduleName }}
+
                 @php
-                $subModuleId = $reports->first()->sub_module_id;
-                $progressRecord = $weeklyReport->weeklyReportProgresses->where('sub_module_id', $subModuleId)->first();
+                    $firstReport = collect($subModules)->first()->first();
+                    $modulePhase = $firstReport && $firstReport->subModule && $firstReport->subModule->module
+                        ? $firstReport->subModule->module->phase
+                        : null;
+                @endphp
+
+                @if($modulePhase)
+                    @php
+                        $isTesting = str_contains(strtolower($modulePhase), 'testing');
+                        $badgeClasses = $isTesting
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200';
+                    @endphp
+
+                    <span class="{{ $badgeClasses }} text-sm font-medium px-2.5 py-0.5 rounded border">
+                        {{ ucfirst($modulePhase) }}
+                    </span>
+                @endif
+            </h3>
+
+            @foreach($subModules as $subModuleName => $reports)
+
+                @php
+                    $subModuleId = $reports->first()->sub_module_id;
+                    $progressRecord = $weeklyReport->weeklyReportProgresses
+                        ->where('sub_module_id', $subModuleId)
+                        ->first();
                 @endphp
 
                 <div class="mb-6">
+
                     <div class="flex justify-between items-center mb-2">
-                        <h4 class="text-lg font-semibold text-gray-800">{{ $subModuleName }}</h4>
+                        <h4 class="text-lg font-semibold text-gray-800">
+                            {{ $subModuleName }}
+                        </h4>
+
                         @if($progressRecord && $progressRecord->progress_percentage !== null)
-                        @php
-                        $isComplete = $progressRecord->progress_percentage == 100;
-                        $progressClass = $isComplete ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800';
-                        @endphp
-                        <span class="{{ $progressClass }} text-sm font-medium px-3 py-1 rounded-full">
-                            Progress: {{ $progressRecord->progress_percentage }}%
-                        </span>
+                            @php
+                                $isComplete = $progressRecord->progress_percentage == 100;
+                                $progressClass = $isComplete
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-indigo-100 text-indigo-800';
+                            @endphp
+
+                            <span class="{{ $progressClass }} text-sm font-medium px-3 py-1 rounded-full">
+                                Progress: {{ $progressRecord->progress_percentage }}%
+                            </span>
                         @endif
                     </div>
 
                     <div class="space-y-3 mb-2">
+
                         @foreach($reports as $report)
+
                             @php
-                                $rawDesc = $report->getRawOriginal('description') ?? $report->description;
-                                $tasks = \App\Models\DailyReport::parseTasks($rawDesc);
+                                $rawDescription = $report->getRawOriginal('description');
+                                $decodedDescription = json_decode($rawDescription, true);
+
+                                $tasks = [];
+
+                                if (is_array($decodedDescription)) {
+                                    foreach ($decodedDescription as $task) {
+
+                                        if (is_string($task)) {
+                                            $nested = json_decode($task, true);
+
+                                            if (is_array($nested)) {
+                                                foreach ($nested as $nestedTask) {
+                                                    $tasks[] = trim(strip_tags((string) $nestedTask));
+                                                }
+                                            } else {
+                                                $tasks[] = trim(strip_tags($task));
+                                            }
+
+                                        } else {
+                                            $tasks[] = trim(strip_tags((string) $task));
+                                        }
+                                    }
+                                } else {
+                                    $tasks[] = trim(strip_tags((string) $rawDescription));
+                                }
+
+                                $tasks = array_filter($tasks);
                             @endphp
-                            @foreach($tasks as $task)
-                                @if(preg_match('/^[A-Za-z0-9\s\-_()\/&]+(:|(\s*\|\s*[A-Za-z0-9\s\-_()\/&]+)+)$/u', $task))
-                                    <div class="font-semibold text-xs text-indigo-700 mt-3 mb-1 uppercase tracking-wide">{{ $task }}</div>
-                                @else
-                                    <div class="flex items-start text-gray-700">
-                                        <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                                        <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{{ $task }}</div>
-                                    </div>
-                                @endif
-                            @endforeach
+
+                            <div class="text-gray-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    @foreach($tasks as $task)
+                                        <li>{{ $task }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
                         @endforeach
+
                     </div>
 
                     @php
-                    $allImages = $reports->flatMap->reportImages;
+                        $allImages = $reports->flatMap->reportImages;
                     @endphp
 
                     @if($allImages->count() > 0)
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        @foreach($allImages as $image)
-                        <div class="flex flex-col items-center justify-center">
-                            <img src="{{ Storage::url($image->image_path) }}" alt="{{ $image->caption }}" class="rounded-lg object-contain max-h-40 max-w-full shadow-sm border border-gray-200">
-                            @if($image->caption)
-                            <p class="text-sm text-gray-500 mt-2 text-center">{{ $image->caption }}</p>
-                            @endif
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+
+                            @foreach($allImages as $image)
+                                <div class="flex flex-col items-center justify-center">
+
+                                    <img
+                                        src="{{ Storage::url($image->image_path) }}"
+                                        alt="{{ $image->caption }}"
+                                        class="rounded-lg object-contain max-h-40 max-w-full shadow-sm border border-gray-200"
+                                    >
+
+                                    @if($image->caption)
+                                        <p class="text-sm text-gray-500 mt-2 text-center">
+                                            {{ $image->caption }}
+                                        </p>
+                                    @endif
+
+                                </div>
+                            @endforeach
+
                         </div>
-                        @endforeach
-                    </div>
                     @endif
+
                 </div>
-                @endforeach
-            </div>
+
             @endforeach
+
         </div>
+
+    @endforeach
+
+</div>
 
         @if($weeklyReport->plan_of_action)
         <div class="mb-12">
@@ -184,10 +248,7 @@
                                         @if(preg_match('/^[A-Za-z0-9\s\-_()\/&]+(:|(\s*\|\s*[A-Za-z0-9\s\-_()\/&]+)+)$/u', $task))
                                             <div class="font-semibold text-xs text-indigo-700 mt-3 mb-1 uppercase tracking-wide">{{ $task }}</div>
                                         @else
-                                            <div class="flex items-start text-gray-700">
-                                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-2 mr-3 flex-shrink-0"></div>
-                                                <div class="prose prose-sm max-w-none [&>*:last-child]:mb-0 w-full">{{ $task }}</div>
-                                            </div>
+                                            <div class="text-gray-700"> @php $rawDescription = $report->getRawOriginal('description'); $decodedDescription = json_decode($rawDescription, true); $tasks = []; if (is_array($decodedDescription)) { foreach ($decodedDescription as $task) { if (is_string($task)) { $nested = json_decode($task, true); if (is_array($nested)) { foreach ($nested as $nestedTask) { $tasks[] = trim(strip_tags((string) $nestedTask)); } } else { $tasks[] = trim(strip_tags($task)); } } else { $tasks[] = trim(strip_tags((string) $task)); } } } else { $tasks[] = trim(strip_tags((string) $rawDescription)); } $tasks = array_filter($tasks); @endphp <ul class="list-disc pl-5 space-y-1"> @foreach($tasks as $task) <li>{{ $task }}</li> @endforeach </ul> </div>
                                         @endif
                                     @endforeach
                                 @endforeach
