@@ -390,7 +390,15 @@
                     </div>
 
                     <div class="description">
-                        {!! $report->description !!}
+                        @if (is_array($report->description))
+                            <ul>
+                                @foreach ($report->description as $taskItem)
+                                    <li>{!! nl2br(e($taskItem)) !!}</li>
+                                @endforeach
+                            </ul>
+                        @else
+                            {!! $report->description !!}
+                        @endif
                     </div>
 
                     @if ($report->reportImages->isNotEmpty())
