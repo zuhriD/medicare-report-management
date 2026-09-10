@@ -23,6 +23,19 @@ class PlanOfAction extends Model
         'end_date' => 'date',
     ];
 
+    protected function description(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn ($value) => \App\Models\DailyReport::parseTasks($value),
+            set: function ($value) {
+                if (is_array($value)) {
+                    return json_encode(array_values(array_filter($value, fn($item) => filled($item))));
+                }
+                return $value;
+            }
+        );
+    }
+
     public function module()
     {
         return $this->belongsTo(Module::class);

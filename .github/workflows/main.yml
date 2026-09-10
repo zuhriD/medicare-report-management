@@ -1,0 +1,39 @@
+name: Auto Deploy - Medicare
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-prod:
+    name: Deploy to Production
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-22.04
+    environment: production
+
+    env:
+      SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+      SSH_PORT: ${{ secrets.PROD_SSH_PORT }}
+      SSH_USER: ${{ secrets.PROD_SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      WORK_DIR: ${{ secrets.PROD_WORK_DIR }}
+
+    steps:
+      - name: Set Up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p $SSH_PORT -H $SSH_HOST >> ~/.ssh/known_hosts
+
+      - name: Pull & Build (Prod)
+        run: |
+          ssh -i ~/.ssh/id_rsa -p $SSH_PORT $SSH_USER@$SSH_HOST << EOF
+          cd $WORK_DIR
+          git checkout main
+          git pull
+          docker compose build --no-cache report
+          docker compose up -d --no-deps --force-recreate report
+          docker image prune -f || echo "Prune skipped"
+          EOF

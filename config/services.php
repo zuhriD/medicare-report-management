@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'github' => [
+        'token' => env('GITHUB_TOKEN'),
+        'api_url' => env('GITHUB_API_URL', 'https://api.github.com'),
+        'per_page' => (int) env('GITHUB_PER_PAGE', 100),
+    ],
+
+    'ollama' => [
+        'api_url' => env('OLLAMA_API_URL', 'https://ollama.com'),
+        'model' => env('OLLAMA_MODEL', 'gpt-oss:120b'),
+        'api_key' => env('OLLAMA_API_KEY'),
+    ],
+
 ];
