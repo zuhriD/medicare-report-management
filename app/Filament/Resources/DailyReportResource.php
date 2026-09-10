@@ -303,18 +303,22 @@ class DailyReportResource extends Resource
                                         ->orderByDesc('committed_at')
                                         ->get();
 
-                                    $content = $commits
+                                    $newItems = $commits
                                         ->map(fn (GithubCommit $commit): string => sprintf(
-                                            '<ul><li><strong>[%s] %s @ %s</strong><br>%s</li></ul>',
-                                            e($commit->repository?->full_name ?? ''),
-                                            e($commit->short_sha),
+                                            '[%s] %s @ %s: %s',
+                                            $commit->repository?->full_name ?? '',
+                                            $commit->short_sha,
                                             $commit->committed_at?->format('d M Y H:i'),
-                                            nl2br(e($commit->message)),
+                                            str($commit->message)->before("\n")->toString(),
                                         ))
-                                        ->implode('');
+                                        ->all();
 
-                                    $current = (string) $get('description');
-                                    $set('description', $current.$content);
+                                    $current = $get('description');
+                                    if (! is_array($current)) {
+                                        $current = filled($current) ? [$current] : [];
+                                    }
+
+                                    $set('description', array_values(array_merge($current, $newItems)));
 
                                     $set('commit_ids', []);
 
@@ -380,13 +384,14 @@ class DailyReportResource extends Resource
                                     try {
                                         $summary = app(OllamaService::class)->chat($prompt, $system);
 
-                                        $content = sprintf(
-                                            '<p><strong>AI Summary</strong></p><p>%s</p>',
-                                            nl2br(e($summary)),
-                                        );
+                                        $current = $get('description');
+                                        if (! is_array($current)) {
+                                            $current = filled($current) ? [$current] : [];
+                                        }
 
-                                        $current = (string) $get('description');
-                                        $set('description', $current.$content);
+                                        $current[] = $summary;
+
+                                        $set('description', array_values(array_filter($current)));
 
                                         Notification::make()
                                             ->title('AI summary added to description')
@@ -441,6 +446,8 @@ class DailyReportResource extends Resource
             ->schema([
                 \Filament\Infolists\Components\Section::make('Report Information')
                     ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('user.name')
+                            ->label('Member'),
                         \Filament\Infolists\Components\TextEntry::make('report_date')
                             ->label('Report Date')
                             ->date('d/m/Y'),
@@ -461,7 +468,7 @@ class DailyReportResource extends Resource
                                 return new \Illuminate\Support\HtmlString($html);
                             })
                             ->columnSpanFull(),
-                    ])->columns(3),
+                    ])->columns(2),
             ]);
     }
 
@@ -491,6 +498,7 @@ class DailyReportResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('report_date', 'desc')
             ->filters([
                 Tables\Filters\Filter::make('report_date')
                     ->form([
@@ -519,6 +527,7 @@ class DailyReportResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ], layout: Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
+                Tables\Actions\ViewAction::make()->modal(),
                 Tables\Actions\Action::make('print')
                     ->label('Print')
                     ->icon('heroicon-o-printer')

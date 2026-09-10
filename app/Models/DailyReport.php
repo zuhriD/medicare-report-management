@@ -96,11 +96,27 @@ class DailyReport extends Model
     protected function description(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
         return \Illuminate\Database\Eloquent\Casts\Attribute::make(
-            get: fn ($value) => self::parseTasks($value),
+            get: function ($value) {
+                if (empty($value)) {
+                    return [];
+                }
+
+                if (is_array($value)) {
+                    return $value;
+                }
+
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return $decoded;
+                }
+
+                return self::parseTasks($value);
+            },
             set: function ($value) {
                 if (is_array($value)) {
                     return json_encode(array_values(array_filter($value, fn($item) => filled($item))));
                 }
+
                 return $value;
             }
         );
