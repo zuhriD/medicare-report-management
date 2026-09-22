@@ -11,6 +11,13 @@ use Carbon\CarbonPeriod;
 
 class AttendanceFineService
 {
+    protected ?HolidayService $holidayService = null;
+
+    public function __construct(?HolidayService $holidayService = null)
+    {
+        $this->holidayService = $holidayService ?? app(HolidayService::class);
+    }
+
     /**
      * Get the active absence daily fine rate for an office on a given date.
      */
@@ -26,10 +33,14 @@ class AttendanceFineService
     }
 
     /**
-     * Calculate working days count between start and end date (inclusive, excluding weekends).
+     * Calculate working days count between start and end date (inclusive, excluding Sundays and registered holidays).
      */
-    public function calculateWorkingDays(Carbon $startDate, Carbon $endDate): int
+    public function calculateWorkingDays(Carbon $startDate, Carbon $endDate, ?int $officeId = null): int
     {
+        if ($this->holidayService) {
+            return $this->holidayService->countWorkingDays($startDate, $endDate, $officeId);
+        }
+
         if ($startDate->gt($endDate)) {
             return 0;
         }
@@ -38,8 +49,6 @@ class AttendanceFineService
         $count = 0;
 
         foreach ($period as $date) {
-            // Standard working days: Monday (1) to Friday (5) or Saturday (6)
-            // By default, exclude Sunday (0)
             if (!$date->isSunday()) {
                 $count++;
             }
@@ -55,7 +64,7 @@ class AttendanceFineService
      */
     public function calculateLeaveNormalFine(Office $office, Carbon $startDate, Carbon $endDate): array
     {
-        $totalDays = $this->calculateWorkingDays($startDate, $endDate);
+        $totalDays = $this->calculateWorkingDays($startDate, $endDate, $office->id);
         $dailyRate = $this->getDailyFineRate($office, $startDate->toDateString());
         $normalFine = $totalDays * $dailyRate;
 
@@ -101,6 +110,18 @@ class AttendanceFineService
             $dateStr = $date->toDateString();
 
             if ($date->isSunday()) {
+                continue;
+            }
+
+            // Check if date is a registered holiday
+            $holiday = $this->holidayService ? $this->holidayService->isHoliday($dateStr, $office?->id) : null;
+            if ($holiday) {
+                $daysBreakdown[$dateStr] = [
+                    'date' => $dateStr,
+                    'status' => 'holiday',
+                    'fine_amount' => 0.00,
+                    'description' => 'Libur: ' . $holiday->name,
+                ];
                 continue;
             }
 

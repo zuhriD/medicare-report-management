@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\Office;
 use App\Models\Overtime;
@@ -228,5 +229,32 @@ class AttendanceRecapServiceTest extends TestCase
         $this->assertEquals(0.00, $staffRecap['alpha_fine']);
         $this->assertEquals(0.00, $staffRecap['total_fine']);
         $this->assertEquals(25000.00, $staffRecap['net_allowance']);
+    }
+
+    public function test_internal_holiday_exempts_staff_from_alpha_fine_in_recap()
+    {
+        // 2026-09-22 is registered as an internal holiday
+        Holiday::create([
+            'holiday_date' => '2026-09-22',
+            'name' => 'Libur Khusus Internal',
+            'office_id' => $this->officeMalang->id,
+            'country_code' => 'ID',
+            'is_national_holiday' => false,
+        ]);
+
+        $start = Carbon::parse('2026-09-22');
+        $end = Carbon::parse('2026-09-22');
+
+        $recap = $this->recapService->getRecapByDateRange($start, $end, $this->officeMalang->id, $this->staffMalang->id);
+
+        $staffRecap = $recap['staff_data'][0];
+        $this->assertEquals(0, $staffRecap['alpha_days']);
+        $this->assertEquals(0.00, $staffRecap['alpha_fine']);
+        $this->assertEquals(0.00, $staffRecap['total_fine']);
+        
+        $dayBreakdown = $staffRecap['daily_breakdown']['2026-09-22'];
+        $this->assertEquals('holiday', $dayBreakdown['status']);
+        $this->assertEquals('Hari Libur (Libur Khusus Internal)', $dayBreakdown['status_label']);
+        $this->assertEquals(0.00, $dayBreakdown['fine_amount']);
     }
 }

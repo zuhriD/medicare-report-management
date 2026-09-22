@@ -13,10 +13,14 @@ use Carbon\CarbonPeriod;
 class AttendanceRecapService
 {
     protected AttendanceFineService $fineService;
+    protected HolidayService $holidayService;
 
-    public function __construct(AttendanceFineService $fineService)
-    {
+    public function __construct(
+        AttendanceFineService $fineService,
+        ?HolidayService $holidayService = null
+    ) {
         $this->fineService = $fineService;
+        $this->holidayService = $holidayService ?? app(HolidayService::class);
     }
 
     /**
@@ -53,7 +57,7 @@ class AttendanceRecapService
         $today = now()->endOfDay();
         $calcEndDate = $endDate->gt($today) ? $today : $endDate;
 
-        $workingDays = $this->fineService->calculateWorkingDays($startDate, $endDate);
+        $workingDays = $this->fineService->calculateWorkingDays($startDate, $endDate, $officeId);
 
         // Build User Query
         $userQuery = User::query()->with(['office.attendanceSettings']);
@@ -132,12 +136,15 @@ class AttendanceRecapService
                     $userOvertimeAllowance += $dayOtAllowance;
                 }
 
-                if ($isSunday) {
+                $userHoliday = $this->holidayService->isHoliday($dateStr, $office?->id);
+
+                if ($isSunday || $userHoliday) {
+                    $holidayLabel = $userHoliday ? 'Hari Libur (' . $userHoliday->name . ')' : 'Hari Libur (Minggu)';
                     $dailyBreakdown[$dateStr] = [
                         'date' => $dateStr,
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'holiday',
-                        'status_label' => 'Hari Libur (Minggu)',
+                        'status_label' => $holidayLabel,
                         'working_minutes' => 0,
                         'regular_allowance' => 0.00,
                         'overtime_allowance' => $dayOtAllowance,

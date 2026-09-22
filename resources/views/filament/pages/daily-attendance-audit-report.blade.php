@@ -391,11 +391,15 @@
             </div>
 
             <!-- Date Banner Indicator -->
-            <div class="mt-4 flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl {{ $audit['is_sunday'] ? 'att-badge-amber' : 'bg-gray-50 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700' }}">
+            <div class="mt-4 flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl {{ ($audit['is_sunday'] || !empty($audit['is_holiday'])) ? 'att-badge-amber' : 'bg-gray-50 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700' }}">
                 <div class="flex items-center gap-2">
                     <x-heroicon-o-calendar-days class="w-4 h-4" />
                     <span class="font-bold">{{ $audit['day_name'] }}, {{ $audit['date_formatted'] }}</span>
-                    @if($audit['is_sunday'])
+                    @if(!empty($audit['holiday_name']))
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+                            Libur: {{ $audit['holiday_name'] }}
+                        </span>
+                    @elseif($audit['is_sunday'])
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100">Hari Minggu (Libur)</span>
                     @endif
                 </div>

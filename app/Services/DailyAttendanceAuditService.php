@@ -13,15 +13,18 @@ class DailyAttendanceAuditService
     protected GeoLocationService $geoService;
     protected AttendanceFineService $fineService;
     protected SelfieStorageService $selfieService;
+    protected HolidayService $holidayService;
 
     public function __construct(
         GeoLocationService $geoService,
         AttendanceFineService $fineService,
-        SelfieStorageService $selfieService
+        SelfieStorageService $selfieService,
+        ?HolidayService $holidayService = null
     ) {
         $this->geoService = $geoService;
         $this->fineService = $fineService;
         $this->selfieService = $selfieService;
+        $this->holidayService = $holidayService ?? app(HolidayService::class);
     }
 
     /**
@@ -32,6 +35,8 @@ class DailyAttendanceAuditService
      *   date_formatted: string,
      *   day_name: string,
      *   is_sunday: bool,
+     *   is_holiday: bool,
+     *   holiday_name: ?string,
      *   summary: array,
      *   staff_logs: array,
      *   offices: array
@@ -43,6 +48,9 @@ class DailyAttendanceAuditService
         $dateFormatted = $date->translatedFormat('d F Y');
         $dayName = $date->translatedFormat('l');
         $isSunday = $date->isSunday();
+        $globalHoliday = $this->holidayService->isHoliday($dateStr, $officeId);
+        $isHoliday = $isSunday || !is_null($globalHoliday);
+        $holidayName = $globalHoliday?->name ?? ($isSunday ? 'Hari Minggu' : null);
 
         $userQuery = User::query()->with(['office.attendanceSettings']);
 
@@ -85,6 +93,7 @@ class DailyAttendanceAuditService
             $office = $user->office;
             $att = $attendances->get($user->id);
             $leave = $approvedLeaves->get($user->id);
+            $userHoliday = $this->holidayService->isHoliday($dateStr, $office?->id);
 
             $status = 'alpha';
             $statusLabel = 'Alpha (Tanpa Keterangan)';
@@ -100,9 +109,9 @@ class DailyAttendanceAuditService
             $totalUserBreakMinutes = 0;
             $isCurrentlyPaused = false;
 
-            if ($isSunday && !$att) {
+            if (($isSunday || $userHoliday) && !$att) {
                 $status = 'holiday';
-                $statusLabel = 'Hari Libur (Minggu)';
+                $statusLabel = 'Hari Libur (' . ($userHoliday ? $userHoliday->name : 'Minggu') . ')';
                 $badgeColor = 'gray';
             } elseif ($att && $att->isCheckedIn()) {
                 $totalCheckedIn++;
@@ -230,6 +239,8 @@ class DailyAttendanceAuditService
             'date_formatted' => $dateFormatted,
             'day_name' => $dayName,
             'is_sunday' => $isSunday,
+            'is_holiday' => $isHoliday,
+            'holiday_name' => $holidayName,
             'summary' => [
                 'total_staff' => $totalStaff,
                 'total_checked_in' => $totalCheckedIn,
