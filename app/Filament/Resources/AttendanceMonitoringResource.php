@@ -139,6 +139,28 @@ class AttendanceMonitoringResource extends Resource
                         ]),
                     ]),
 
+                InfoSection::make('Riwayat Izin Keluar / Jeda Absensi')
+                    ->schema([
+                        \Filament\Infolists\Components\RepeatableEntry::make('breaks')
+                            ->label('')
+                            ->schema([
+                                InfoGrid::make(4)->schema([
+                                    TextEntry::make('reason')->label('Alasan Izin')->weight('bold'),
+                                    TextEntry::make('paused_at')->label('Jam Keluar')->dateTime('H:i:s (d M)'),
+                                    TextEntry::make('resumed_at')->label('Jam Kembali')->dateTime('H:i:s (d M)')->placeholder('Sedang di Luar (Aktif)'),
+                                    TextEntry::make('duration_minutes')->label('Durasi Jeda')->formatStateUsing(fn ($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : 'Sedang Berjalan')->badge()->color(fn ($record) => $record?->isOpen() ? 'warning' : 'info'),
+                                ]),
+                                TextEntry::make('notes')->label('Catatan Tambahan')->placeholder('—'),
+                            ])
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => $record->breaks()->exists()),
+                        TextEntry::make('no_breaks_notice')
+                            ->label('')
+                            ->default('Tidak ada riwayat izin keluar / jeda pada kehadiran ini.')
+                            ->visible(fn ($record) => !$record->breaks()->exists()),
+                    ])
+                    ->collapsible(),
+
                 InfoSection::make('Calculation & Allowance Snapshot')
                     ->schema([
                         InfoGrid::make(4)->schema([
@@ -200,6 +222,19 @@ class AttendanceMonitoringResource extends Resource
                     ->timezone(fn ($record) => $record->office?->timezone ?? config('app.timezone'))
                     ->placeholder('In Progress')
                     ->sortable(),
+                TextColumn::make('breaks_summary')
+                    ->label('Izin Keluar')
+                    ->getStateUsing(function ($record) {
+                        $count = $record->breaks()->count();
+                        if ($count === 0) return '—';
+                        $totalMinutes = $record->totalBreakMinutes();
+                        $duration = app(AttendanceCalculationService::class)->formatMinutesToDuration($totalMinutes);
+                        $isPaused = $record->isPaused() ? ' (Jeda Aktif)' : '';
+                        return "{$count}x ({$duration}){$isPaused}";
+                    })
+                    ->badge()
+                    ->color(fn ($record) => $record->isPaused() ? 'warning' : ($record->breaks()->count() > 0 ? 'info' : 'gray'))
+                    ->toggleable(),
                 TextColumn::make('working_minutes')
                     ->label('Duration')
                     ->formatStateUsing(fn ($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : '—')

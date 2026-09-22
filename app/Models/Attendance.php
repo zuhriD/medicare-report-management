@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Attendance extends Model
@@ -68,6 +69,26 @@ class Attendance extends Model
     public function overtime(): HasOne
     {
         return $this->hasOne(Overtime::class);
+    }
+
+    public function breaks(): HasMany
+    {
+        return $this->hasMany(AttendanceBreak::class);
+    }
+
+    public function activeBreak(): ?AttendanceBreak
+    {
+        return $this->breaks()->whereNull('resumed_at')->latest('paused_at')->first();
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->isCheckedIn() && !$this->isCheckedOut() && $this->breaks()->whereNull('resumed_at')->exists();
+    }
+
+    public function totalBreakMinutes(): int
+    {
+        return (int) $this->breaks()->whereNotNull('duration_minutes')->sum('duration_minutes');
     }
 
     public function isCheckedIn(): bool

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Attendance;
+use App\Models\AttendanceBreak;
 use App\Models\AttendanceSetting;
 use App\Models\Office;
 use App\Models\Overtime;
@@ -41,7 +42,12 @@ class MyAttendance extends Page
     public ?bool $isWithinRadius = null;
     public ?string $geofenceMessage = null;
 
-    public string $actionType = 'regular_check_in'; // regular_check_in, regular_check_out, ot_check_in, ot_check_out
+    // Pause / Break state properties
+    public string $pauseReason = '';
+    public ?string $pauseNotes = null;
+    public bool $showPauseModal = false;
+
+    public string $actionType = 'regular_check_in'; // regular_check_in, paused, regular_check_out, ot_check_in, ot_check_out
 
     public function mount(): void
     {
@@ -115,6 +121,8 @@ class MyAttendance extends Page
     {
         if (!$this->todayAttendance) {
             $this->actionType = 'regular_check_in';
+        } elseif ($this->todayAttendance->isPaused()) {
+            $this->actionType = 'paused';
         } elseif (!$this->todayAttendance->isCheckedOut()) {
             $this->actionType = 'regular_check_out';
         } elseif (!$this->todayOvertime) {
@@ -248,6 +256,169 @@ class MyAttendance extends Page
     }
 
     /**
+     * Open the pause attendance modal dialog.
+     */
+    public function openPauseModal(): void
+    {
+        $this->pauseReason = '';
+        $this->pauseNotes = null;
+        $this->showPauseModal = true;
+    }
+
+    /**
+     * Close the pause attendance modal dialog.
+     */
+    public function closePauseModal(): void
+    {
+        $this->showPauseModal = false;
+    }
+
+    /**
+     * Perform Pause Attendance (Izin Keluar).
+     */
+    public function pauseAttendance(): void
+    {
+        $attendance = $this->todayAttendance;
+        $policyService = app(AttendancePolicyService::class);
+        $check = $policyService->canPauseAttendance($attendance);
+        if (!$check['allowed']) {
+            Notification::make()
+                ->title('Cannot Pause Attendance')
+                ->body($check['reason'])
+                ->warning()
+                ->send();
+            return;
+        }
+
+        if (empty(trim($this->pauseReason))) {
+            Notification::make()
+                ->title('Alasan Izin Wajib Diisi')
+                ->body('Mohon tuliskan alasan izin keluar kantor sebelum menjeda absensi.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $now = Carbon::now();
+        $selfiePath = null;
+        if ($this->selfie) {
+            $selfieService = app(SelfieStorageService::class);
+            $selfiePath = $selfieService->storeSelfie(
+                $this->selfie,
+                $this->user->id,
+                'pause',
+                $now
+            );
+        }
+
+        AttendanceBreak::create([
+            'attendance_id' => $attendance->id,
+            'user_id' => $this->user->id,
+            'reason' => trim($this->pauseReason),
+            'paused_at' => $now,
+            'paused_latitude' => $this->latitude,
+            'paused_longitude' => $this->longitude,
+            'paused_accuracy' => $this->accuracy,
+            'paused_selfie' => $selfiePath,
+            'notes' => $this->pauseNotes,
+        ]);
+
+        $this->reset(['pauseReason', 'pauseNotes', 'selfie', 'showPauseModal']);
+        $this->evaluateCurrentState();
+
+        $timeStr = $now->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s');
+        Notification::make()
+            ->title('Izin Keluar Tercatat')
+            ->body("Absensi Anda dijeda pada pukul {$timeStr}. Jangan lupa tekan tombol 'Kembali ke Kantor' saat Anda kembali.")
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Perform Resume Attendance (Kembali ke Kantor).
+     */
+    public function resumeAttendance(): void
+    {
+        $attendance = $this->todayAttendance;
+        $policyService = app(AttendancePolicyService::class);
+        $check = $policyService->canResumeAttendance($attendance);
+        if (!$check['allowed']) {
+            Notification::make()
+                ->title('Cannot Resume Attendance')
+                ->body($check['reason'])
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $office = $this->office;
+        if (!$office) {
+            Notification::make()
+                ->title('Office Required')
+                ->body('Office information is missing.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $geoService = app(GeoLocationService::class);
+        $geo = $geoService->validateOfficeGeofence($office, $this->latitude, $this->longitude);
+        if (!$geo['is_valid']) {
+            Notification::make()
+                ->title('Outside Office Radius')
+                ->body('Anda harus berada di dalam radius kantor (' . $office->attendance_radius_meter . 'm) untuk melanjutkan absensi kembali.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $activeBreak = $attendance->activeBreak();
+        if (!$activeBreak) {
+            Notification::make()
+                ->title('No Active Break')
+                ->body('Tidak ada sesi izin keluar aktif yang dapat dilanjutkan.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $now = Carbon::now();
+        $selfiePath = null;
+        if ($this->selfie) {
+            $selfieService = app(SelfieStorageService::class);
+            $selfiePath = $selfieService->storeSelfie(
+                $this->selfie,
+                $this->user->id,
+                'resume',
+                $now
+            );
+        }
+
+        $calcService = app(AttendanceCalculationService::class);
+        $breakMinutes = $calcService->calculateBreakMinutes($activeBreak->paused_at, $now);
+
+        $activeBreak->update([
+            'resumed_at' => $now,
+            'resumed_latitude' => $this->latitude,
+            'resumed_longitude' => $this->longitude,
+            'resumed_accuracy' => $this->accuracy,
+            'resumed_selfie' => $selfiePath,
+            'duration_minutes' => $breakMinutes,
+        ]);
+
+        $this->reset(['selfie', 'notes']);
+        $this->evaluateCurrentState();
+
+        $durationText = $calcService->formatMinutesToDuration($breakMinutes);
+        $timeStr = $now->setTimezone($office->timezone ?? config('app.timezone'))->format('H:i:s');
+        Notification::make()
+            ->title('Absensi Dilanjutkan')
+            ->body("Selamat datang kembali di kantor ({$timeStr})! Durasi izin keluar: {$durationText}.")
+            ->success()
+            ->send();
+    }
+
+    /**
      * Perform Regular Check-Out.
      */
     public function doRegularCheckOut(): void
@@ -283,7 +454,10 @@ class MyAttendance extends Page
         $office = $attendance->office;
         $geoService = app(GeoLocationService::class);
         $geo = $geoService->validateOfficeGeofence($office, $this->latitude, $this->longitude);
-        if (!$geo['is_valid']) {
+        $isPausedSession = $attendance->isPaused();
+
+        // Regular check-out requires geofence unless staff is directly checking out from an active leave/pause session
+        if (!$isPausedSession && !$geo['is_valid']) {
             Notification::make()
                 ->title('Outside Geofence')
                 ->body($geo['message'])
@@ -294,6 +468,19 @@ class MyAttendance extends Page
 
         $now = Carbon::now();
         $policy = $attendance->attendanceSetting ?? $this->policy;
+        $calcService = app(AttendanceCalculationService::class);
+
+        // If there is still an active break open, automatically close it at checkout timestamp
+        if ($activeBreak = $attendance->activeBreak()) {
+            $breakMinutes = $calcService->calculateBreakMinutes($activeBreak->paused_at, $now);
+            $activeBreak->update([
+                'resumed_at' => $now,
+                'resumed_latitude' => $this->latitude,
+                'resumed_longitude' => $this->longitude,
+                'resumed_accuracy' => $this->accuracy,
+                'duration_minutes' => $breakMinutes,
+            ]);
+        }
 
         // Store selfie
         $selfieService = app(SelfieStorageService::class);
@@ -304,9 +491,9 @@ class MyAttendance extends Page
             $now
         );
 
-        // Calculate working duration & allowance
-        $calcService = app(AttendanceCalculationService::class);
-        $workingMinutes = $calcService->calculateWorkingMinutes($attendance->check_in_at, $now);
+        // Calculate working duration deducting total break minutes & evaluate allowance
+        $totalBreakMinutes = $attendance->totalBreakMinutes();
+        $workingMinutes = $calcService->calculateWorkingMinutes($attendance->check_in_at, $now, $totalBreakMinutes);
         $allowanceData = $calcService->evaluateRegularAllowance($workingMinutes, $policy);
 
         $attendance->update([
@@ -322,12 +509,13 @@ class MyAttendance extends Page
         ]);
 
         $durationText = $calcService->formatMinutesToDuration($workingMinutes);
+        $breakInfoText = $totalBreakMinutes > 0 ? " (Istirahat/Izin: " . $calcService->formatMinutesToDuration($totalBreakMinutes) . ")" : "";
         $this->reset(['selfie', 'notes']);
         $this->evaluateCurrentState();
 
         Notification::make()
             ->title('Check-Out Successful!')
-            ->body("Working duration: {$durationText}. Allowance: " . ($allowanceData['allowance_eligible'] ? "Qualified (RM/Rp " . number_format($allowanceData['allowance_amount'], 2) . ")" : "Not qualified") . ".")
+            ->body("Working duration: {$durationText}{$breakInfoText}. Allowance: " . ($allowanceData['allowance_eligible'] ? "Qualified (RM/Rp " . number_format($allowanceData['allowance_amount'], 2) . ")" : "Not qualified") . ".")
             ->success()
             ->send();
     }
@@ -501,7 +689,7 @@ class MyAttendance extends Page
      */
     public function getRecentAttendancesProperty()
     {
-        return Attendance::with(['office', 'overtime'])
+        return Attendance::with(['office', 'overtime', 'breaks'])
             ->where('user_id', $this->user?->id)
             ->latest('attendance_date')
             ->take(15)

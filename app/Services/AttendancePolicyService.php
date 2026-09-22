@@ -92,6 +92,67 @@ class AttendancePolicyService
     }
 
     /**
+     * Validate whether staff can pause attendance (izin keluar).
+     *
+     * @return array{allowed: bool, reason: ?string}
+     */
+    public function canPauseAttendance(?Attendance $attendance): array
+    {
+        if (!$attendance || !$attendance->isCheckedIn()) {
+            return [
+                'allowed' => false,
+                'reason' => 'You must check in first before requesting leave permission / pause.',
+            ];
+        }
+
+        if ($attendance->isCheckedOut()) {
+            return [
+                'allowed' => false,
+                'reason' => 'You have already checked out for today.',
+            ];
+        }
+
+        if ($attendance->isPaused()) {
+            return [
+                'allowed' => false,
+                'reason' => 'You are already in leave permission / pause status.',
+            ];
+        }
+
+        return [
+            'allowed' => true,
+            'reason' => null,
+        ];
+    }
+
+    /**
+     * Validate whether staff can resume attendance (kembali ke kantor).
+     *
+     * @return array{allowed: bool, reason: ?string}
+     */
+    public function canResumeAttendance(?Attendance $attendance): array
+    {
+        if (!$attendance || !$attendance->isCheckedIn() || $attendance->isCheckedOut()) {
+            return [
+                'allowed' => false,
+                'reason' => 'No active attendance session found.',
+            ];
+        }
+
+        if (!$attendance->isPaused()) {
+            return [
+                'allowed' => false,
+                'reason' => 'Attendance is not currently paused.',
+            ];
+        }
+
+        return [
+            'allowed' => true,
+            'reason' => null,
+        ];
+    }
+
+    /**
      * Validate whether overtime check-in is currently allowed.
      *
      * @return array{allowed: bool, reason: ?string, current_time: string, start_time: string, end_time: string}

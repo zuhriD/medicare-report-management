@@ -8,11 +8,28 @@ use Carbon\Carbon;
 class AttendanceCalculationService
 {
     /**
-     * Calculate working duration in full minutes between check-in and check-out.
+     * Calculate working duration in full minutes between check-in and check-out,
+     * deducting total paused/break minutes.
      */
-    public function calculateWorkingMinutes(Carbon $checkInAt, Carbon $checkOutAt): int
+    public function calculateWorkingMinutes(Carbon $checkInAt, Carbon $checkOutAt, int $totalBreakMinutes = 0): int
     {
         $diffSeconds = $checkOutAt->getTimestamp() - $checkInAt->getTimestamp();
+        if ($diffSeconds <= 0) {
+            return 0;
+        }
+
+        $grossMinutes = (int) floor($diffSeconds / 60);
+        $netMinutes = max(0, $grossMinutes - max(0, $totalBreakMinutes));
+
+        return $netMinutes;
+    }
+
+    /**
+     * Calculate break duration in full minutes between pause and resume.
+     */
+    public function calculateBreakMinutes(Carbon $pausedAt, Carbon $resumedAt): int
+    {
+        $diffSeconds = $resumedAt->getTimestamp() - $pausedAt->getTimestamp();
         if ($diffSeconds <= 0) {
             return 0;
         }

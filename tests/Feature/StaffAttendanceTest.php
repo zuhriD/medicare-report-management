@@ -155,4 +155,67 @@ class StaffAttendanceTest extends TestCase
 
         Carbon::setTestNow(); // Reset mock
     }
+
+    public function test_staff_can_pause_and_resume_attendance_with_working_duration_deduction()
+    {
+        $this->actingAs($this->user);
+        $sampleSelfie = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        $officeTimezone = 'Asia/Kuala_Lumpur';
+        Carbon::setTestNow(Carbon::parse('2026-09-22 08:00:00', $officeTimezone));
+
+        // 1. Regular Check-In at 08:00
+        Livewire::test(MyAttendance::class)
+            ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
+            ->set('selfie', $sampleSelfie)
+            ->call('doRegularCheckIn')
+            ->assertHasNoErrors();
+
+        $attendance = Attendance::where('user_id', $this->user->id)->whereDate('attendance_date', '2026-09-22')->first();
+        $this->assertNotNull($attendance);
+        $this->assertFalse($attendance->isPaused());
+
+        // 2. Pause Attendance (Izin Keluar) at 12:00 (4 hours later)
+        Carbon::setTestNow(Carbon::parse('2026-09-22 12:00:00', $officeTimezone));
+        Livewire::test(MyAttendance::class)
+            ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
+            ->set('pauseReason', 'Makan Siang & Istirahat')
+            ->call('pauseAttendance')
+            ->assertHasNoErrors();
+
+        $attendance->refresh();
+        $this->assertTrue($attendance->isPaused());
+        $this->assertDatabaseHas('attendance_breaks', [
+            'attendance_id' => $attendance->id,
+            'reason' => 'Makan Siang & Istirahat',
+            'duration_minutes' => null,
+        ]);
+
+        // 3. Resume Attendance at 13:00 (1 hour = 60 minutes break)
+        Carbon::setTestNow(Carbon::parse('2026-09-22 13:00:00', $officeTimezone));
+        Livewire::test(MyAttendance::class)
+            ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
+            ->call('resumeAttendance')
+            ->assertHasNoErrors();
+
+        $attendance->refresh();
+        $this->assertFalse($attendance->isPaused());
+        $this->assertEquals(60, $attendance->totalBreakMinutes());
+
+        // 4. Regular Check-Out at 15:00 (Total elapsed: 7 hours = 420 mins. Minus 60 mins break = 360 mins net working duration)
+        Carbon::setTestNow(Carbon::parse('2026-09-22 15:00:00', $officeTimezone));
+        Livewire::test(MyAttendance::class)
+            ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
+            ->set('selfie', $sampleSelfie)
+            ->call('doRegularCheckOut')
+            ->assertHasNoErrors();
+
+        $attendance->refresh();
+        $this->assertNotNull($attendance->check_out_at);
+        $this->assertEquals(360, $attendance->working_minutes);
+        $this->assertTrue($attendance->allowance_eligible);
+        $this->assertEquals(50.0, (float) $attendance->allowance_amount);
+
+        Carbon::setTestNow();
+    }
 }

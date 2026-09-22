@@ -70,7 +70,97 @@ class AttendanceServicesTest extends TestCase
         // Case 3: 7 hours (420 minutes) -> Eligible
         $res3 = $this->calcService->evaluateRegularAllowance(420, $policy);
         $this->assertTrue($res3['allowance_eligible']);
-        $this->assertEquals(50.0, $res3['allowance_amount']);
+        $this->assertEquals(50.0, (float) $res3['allowance_amount']);
+    }
+
+    public function test_attendance_calculation_service_deducts_break_minutes()
+    {
+        $checkIn = Carbon::parse('2026-09-22 08:00:00');
+        $checkOut = Carbon::parse('2026-09-22 15:00:00'); // 7 hours = 420 minutes
+
+        // 1. Without break -> 420 minutes
+        $minutesWithoutBreak = $this->calcService->calculateWorkingMinutes($checkIn, $checkOut, 0);
+        $this->assertEquals(420, $minutesWithoutBreak);
+
+        // 2. With 60 minutes break -> 360 minutes
+        $minutesWithBreak = $this->calcService->calculateWorkingMinutes($checkIn, $checkOut, 60);
+        $this->assertEquals(360, $minutesWithBreak);
+
+        // 3. Break calculation
+        $pauseAt = Carbon::parse('2026-09-22 12:00:00');
+        $resumeAt = Carbon::parse('2026-09-22 12:45:00');
+        $breakMinutes = $this->calcService->calculateBreakMinutes($pauseAt, $resumeAt);
+        $this->assertEquals(45, $breakMinutes);
+    }
+
+    public function test_policy_service_validates_pause_and_resume_transitions()
+    {
+        $office = Office::create([
+            'name' => 'HQ Office',
+            'latitude' => 3.134,
+            'longitude' => 101.686,
+            'attendance_radius_meter' => 100,
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true,
+        ]);
+
+        $policy = AttendanceSetting::create([
+            'office_id' => $office->id,
+            'regular_check_in_start' => '08:00:00',
+            'regular_check_out_end' => '17:00:00',
+            'minimum_regular_minutes' => 360,
+            'regular_allowance_amount' => 50.00,
+            'overtime_check_in_start' => '18:00:00',
+            'overtime_check_out_end' => '22:00:00',
+            'minimum_overtime_minutes' => 120,
+            'overtime_allowance_amount' => 30.00,
+            'effective_from' => '2026-01-01',
+            'is_active' => true,
+        ]);
+
+        $user = User::create([
+            'office_id' => $office->id,
+            'name' => 'Test User',
+            'username' => 'testuser2',
+            'email' => 'test2@medicare.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        // Case 1: No attendance -> cannot pause
+        $check1 = $this->policyService->canPauseAttendance(null);
+        $this->assertFalse($check1['allowed']);
+
+        // Case 2: Checked in attendance -> can pause
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'office_id' => $office->id,
+            'attendance_setting_id' => $policy->id,
+            'attendance_date' => '2026-09-22',
+            'check_in_at' => Carbon::now(),
+        ]);
+        $check2 = $this->policyService->canPauseAttendance($attendance);
+        $this->assertTrue($check2['allowed']);
+
+        // Case 3: Create active break -> cannot pause again, but can resume
+        $break = $attendance->breaks()->create([
+            'user_id' => $user->id,
+            'reason' => 'Istirahat',
+            'paused_at' => Carbon::now(),
+        ]);
+        $this->assertTrue($attendance->isPaused());
+        $check3 = $this->policyService->canPauseAttendance($attendance);
+        $this->assertFalse($check3['allowed']);
+        $checkResume = $this->policyService->canResumeAttendance($attendance);
+        $this->assertTrue($checkResume['allowed']);
+
+        // Case 4: Resume break -> can pause again, cannot resume again
+        $break->update(['resumed_at' => Carbon::now(), 'duration_minutes' => 30]);
+        $attendance->refresh();
+        $this->assertFalse($attendance->isPaused());
+        $check4 = $this->policyService->canPauseAttendance($attendance);
+        $this->assertTrue($check4['allowed']);
+        $checkResume2 = $this->policyService->canResumeAttendance($attendance);
+        $this->assertFalse($checkResume2['allowed']);
     }
 
     public function test_attendance_calculation_service_evaluates_overtime_allowance_threshold()
