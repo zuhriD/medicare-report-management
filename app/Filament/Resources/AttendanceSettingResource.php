@@ -63,7 +63,7 @@ class AttendanceSettingResource extends Resource
                                     ->required()
                                     ->helperText('Standard regular work schedule limit.'),
                             ]),
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 TextInput::make('minimum_regular_minutes')
                                     ->label('Minimum Regular Duration (Minutes)')
@@ -75,9 +75,16 @@ class AttendanceSettingResource extends Resource
                                     ->label('Regular Allowance Amount')
                                     ->numeric()
                                     ->default(0.00)
-                                    ->prefix('Amount')
+                                    ->prefix('Rp')
                                     ->required()
                                     ->helperText('Nominal allowance earned when minimum regular duration is met.'),
+                                TextInput::make('absence_fine_amount')
+                                    ->label('Absence Fine / Day')
+                                    ->numeric()
+                                    ->default(50000.00)
+                                    ->prefix('Rp')
+                                    ->required()
+                                    ->helperText('Fine amount charged per day if staff is absent without approved leave (e.g. Rp 50.000). Set to 0 for branches without fine.'),
                             ]),
                     ]),
 
@@ -160,7 +167,11 @@ class AttendanceSettingResource extends Resource
                     ->sortable(),
                 TextColumn::make('regular_allowance_amount')
                     ->label('Regular Allowance')
-                    ->numeric(decimalPlaces: 2)
+                    ->money('IDR', locale: 'id')
+                    ->sortable(),
+                TextColumn::make('absence_fine_amount')
+                    ->label('Absence Fine/Day')
+                    ->money('IDR', locale: 'id')
                     ->sortable(),
                 TextColumn::make('overtime_window')
                     ->label('OT Hours')

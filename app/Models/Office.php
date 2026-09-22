@@ -51,6 +51,11 @@ class Office extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
     /**
      * Get the active attendance setting/policy for a given date.
      */
