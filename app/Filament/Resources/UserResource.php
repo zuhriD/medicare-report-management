@@ -47,6 +47,13 @@ class UserResource extends Resource
                     ->email()
                     ->helperText('Used to map commits by author email.')
                     ->maxLength(255),
+                Select::make('office_id')
+                    ->relationship('office', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->label('Assigned Office')
+                    ->nullable()
+                    ->helperText('Assign staff to their primary work location for geofencing and attendance policy.'),
                 Select::make('sections')
                     ->relationship('sections', 'name')
                     ->multiple()
@@ -82,6 +89,13 @@ class UserResource extends Resource
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('office.name')
+                    ->label('Office')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('Not assigned')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('github_username')
                     ->label('GitHub')
                     ->searchable()
