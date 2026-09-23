@@ -393,8 +393,10 @@
                             <span class="font-black text-blue-600 dark:text-blue-400">
                                 @if ($this->todayAttendance?->isCheckedOut())
                                 {{ app(\App\Services\AttendanceCalculationService::class)->formatMinutesToDuration($this->todayAttendance->working_minutes) }}
+                                @elseif ($this->todayAttendance?->isPaused())
+                                <span class="text-amber-600 dark:text-amber-400 font-semibold">Izin Keluar (Dijeda)</span>
                                 @elseif ($this->todayAttendance)
-                                <span x-text="calculateElapsedDuration('{{ $this->todayAttendance->check_in_at->toISOString() }}')"></span>
+                                <span class="font-mono text-blue-600 dark:text-blue-400 font-bold" x-text="calculateElapsedDuration('{{ $this->todayAttendance->check_in_at->toISOString() }}', {{ $this->todayAttendance->totalBreakMinutes() }})"></span>
                                 @else
                                 —
                                 @endif
@@ -570,7 +572,7 @@
                                 @if ($this->todayOvertime?->isCheckedOut())
                                 {{ app(\App\Services\AttendanceCalculationService::class)->formatMinutesToDuration($this->todayOvertime->overtime_minutes) }}
                                 @elseif ($this->todayOvertime)
-                                <span x-text="calculateElapsedDuration('{{ $this->todayOvertime->check_in_at->toISOString() }}')"></span>
+                                <span class="font-mono text-amber-600 dark:text-amber-400 font-bold" x-text="calculateElapsedDuration('{{ $this->todayOvertime->check_in_at->toISOString() }}')"></span>
                                 @else
                                 —
                                 @endif
@@ -804,6 +806,7 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('attendanceManager', () => ({
                 currentTime: '',
+                nowTimestamp: Date.now(),
                 timezone: '{{ $this->office?->timezone ?? config('app.timezone') }}',
 
                 // Geolocation State
@@ -822,11 +825,15 @@
 
                 init() {
                     this.updateClock();
-                    setInterval(() => this.updateClock(), 1000);
+                    setInterval(() => {
+                        this.updateClock();
+                        this.nowTimestamp = Date.now();
+                    }, 1000);
                     this.detectLocation();
                 },
 
                 updateClock() {
+                    this.nowTimestamp = Date.now();
                     try {
                         const now = new Date();
                         const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -843,14 +850,19 @@
                     }
                 },
 
-                calculateElapsedDuration(startTimeIso) {
-                    if (!startTimeIso) return '';
+                calculateElapsedDuration(startTimeIso, breakMinutes = 0) {
+                    if (!startTimeIso) return '—';
+                    const now = this.nowTimestamp;
                     const start = new Date(startTimeIso).getTime();
-                    const now = new Date().getTime();
-                    const diffMinutes = Math.max(0, Math.floor((now - start) / 60000));
-                    const hours = Math.floor(diffMinutes / 60);
-                    const minutes = diffMinutes % 60;
-                    return hours > 0 ? `${hours}j ${minutes}m berjalan` : `${minutes}m berjalan`;
+                    const totalElapsedSeconds = Math.max(0, Math.floor((now - start) / 1000) - ((breakMinutes || 0) * 60));
+                    const hours = Math.floor(totalElapsedSeconds / 3600);
+                    const minutes = Math.floor((totalElapsedSeconds % 3600) / 60);
+                    const seconds = totalElapsedSeconds % 60;
+                    const pad = (n) => String(n).padStart(2, '0');
+                    if (hours > 0) {
+                        return `${hours}j ${pad(minutes)}m ${pad(seconds)}d`;
+                    }
+                    return `${minutes}m ${pad(seconds)}d`;
                 },
 
                 detectLocation() {
