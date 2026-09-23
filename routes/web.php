@@ -4,6 +4,7 @@ use App\Http\Controllers\AttendanceRecapExportController;
 use App\Http\Controllers\DailyAttendanceAuditExportController;
 use App\Http\Controllers\DailyReportPrintController;
 use App\Http\Controllers\WeeklyReportController;
+use App\Http\Controllers\LeaveRequestExportController;
 use App\Http\Controllers\PrintPlanOfActionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/poa/recap', [PrintPlanOfActionController::class, 'recap'])->name('poa.recap');
     Route::get('/reports/attendance-recap/export', [AttendanceRecapExportController::class, 'export'])->name('attendance-recap.export');
     Route::get('/reports/daily-attendance-audit/export', [DailyAttendanceAuditExportController::class, 'export'])->name('daily-attendance-audit.export');
+    Route::get('/leave-requests/{leaveRequest}/pdf', [LeaveRequestExportController::class, 'exportPdf'])->name('leave-requests.pdf');
 });
 
 

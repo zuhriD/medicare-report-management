@@ -149,6 +149,7 @@ class AttendanceRecapServiceTest extends TestCase
         $this->assertEquals(15000.00, $staffRecap['regular_allowance']);
         $this->assertEquals(20000.00, $staffRecap['overtime_allowance']);
         $this->assertEquals(35000.00, $staffRecap['gross_allowance']);
+        $this->assertEquals(35000.00, $staffRecap['net_allowance']);
         $this->assertEquals(50000.00, $staffRecap['leave_fine']);
         $this->assertGreaterThan(0, $staffRecap['total_fine']);
     }

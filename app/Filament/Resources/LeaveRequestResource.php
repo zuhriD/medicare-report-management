@@ -344,20 +344,81 @@ class LeaveRequestResource extends Resource
                             ->send();
                     }),
 
+                Action::make('copyChat')
+                    ->label('Copy Chat')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('primary')
+                    ->modalHeading('Format Chat Permohonan Izin')
+                    ->modalDescription('Template pesan formal permohonan izin untuk disalin atau dikirimkan ke atasan (Dr. Adnan).')
+                    ->modalIcon('heroicon-o-chat-bubble-bottom-center-text')
+                    ->modalWidth('2xl')
+                    ->form([
+                        TextInput::make('recipient')
+                            ->label('Kepada Yth. (Nama Penerima / Atasan)')
+                            ->default('Dr. Adnan')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set, LeaveRequest $record) {
+                                $recipient = !empty($state) ? $state : 'Dr. Adnan';
+                                $set('chat_preview', $record->getFormattedChatTemplate($recipient));
+                            }),
+                        Textarea::make('chat_preview')
+                            ->label('Teks Permohonan Izin')
+                            ->rows(14)
+                            ->default(fn(LeaveRequest $record) => $record->getFormattedChatTemplate('Dr. Adnan'))
+                            ->helperText('Klik tombol "Salin ke Clipboard" untuk menyalin teks secara otomatis.'),
+                    ])
+                    ->modalSubmitActionLabel('Salin ke Clipboard')
+                    ->action(function (LeaveRequest $record, array $data, $livewire) {
+                        $text = $data['chat_preview'] ?? $record->getFormattedChatTemplate($data['recipient'] ?? 'Dr. Adnan');
+                        
+                        $livewire->js('
+                            navigator.clipboard.writeText(' . json_encode($text) . ').then(() => {
+                                new FilamentNotification()
+                                    .title("Teks permohonan izin berhasil disalin!")
+                                    .success()
+                                    .send();
+                            });
+                        ');
+
+                        Notification::make()
+                            ->title('Teks izin berhasil disalin')
+                            ->body('Format chat permohonan izin telah disalin ke clipboard.')
+                            ->success()
+                            ->send();
+                    })
+                    ->extraModalFooterActions([
+                        Action::make('modalSendWhatsApp')
+                            ->label('Kirim via WhatsApp')
+                            ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                            ->color('success')
+                            ->url(function (LeaveRequest $record, array $data) {
+                                $recipient = !empty($data['recipient']) ? $data['recipient'] : 'Dr. Adnan';
+                                $msg = rawurlencode($record->getWhatsAppChatTemplate($recipient));
+                                $phone = '6281359983721';
+                                return "https://api.whatsapp.com/send?phone={$phone}&text={$msg}";
+                            }, shouldOpenInNewTab: true),
+                        Action::make('modalDownloadPdf')
+                            ->label('Download PDF')
+                            ->icon('heroicon-o-arrow-down-tray')
+                            ->color('warning')
+                            ->url(fn(LeaveRequest $record) => route('leave-requests.pdf', $record), shouldOpenInNewTab: true),
+                    ]),
+
+                Action::make('generatePdf')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('warning')
+                    ->tooltip('Download Surat Permohonan Izin (PDF)')
+                    ->url(fn(LeaveRequest $record) => route('leave-requests.pdf', $record), shouldOpenInNewTab: true),
+
                 Action::make('sendWhatsApp')
-                    ->label('Hubungi Atasan (WA)')
+                    ->label('Kirim WA')
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->color('info')
+                    ->tooltip('Kirim pesan izin formal ke Atasan via WhatsApp')
                     ->url(function (LeaveRequest $record) {
-                        $type = match ($record->leave_type) {
-                            'sick' => 'Sakit',
-                            'permission' => 'Izin Keperluan',
-                            'annual_leave' => 'Cuti Tahunan',
-                            default => 'Izin',
-                        };
-                        $period = $record->start_date->format('d/m/Y') . ($record->start_date->ne($record->end_date) ? ' s/d ' . $record->end_date->format('d/m/Y') : '');
                         $phone = '6281359983721';
-                        $msg = rawurlencode("Halo Bapak/Ibu Atasan,\n\nSaya ingin menginformasikan pengajuan izin di sistem:\n- Nama: {$record->user->name}\n- Jenis: {$type}\n- Periode: {$period} ({$record->total_days} hari)\n- Alasan: {$record->reason}\n- Estimasi Denda Standar: Rp " . number_format($record->normal_fine_amount, 0, ',', '.') . "\n\nMohon kebijaksanaannya untuk approval dan keringanan denda di sistem. Terima kasih.");
+                        $msg = rawurlencode($record->getWhatsAppChatTemplate('Dr. Adnan'));
                         return "https://api.whatsapp.com/send?phone={$phone}&text={$msg}";
                     }, shouldOpenInNewTab: true),
 

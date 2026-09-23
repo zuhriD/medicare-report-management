@@ -225,7 +225,8 @@ class AttendanceRecapService
 
             $userTotalFine = $userAlphaFine + $userLeaveFine;
             $userGrossAllowance = $userRegularAllowance + $userOvertimeAllowance;
-            $userNetAllowance = $userGrossAllowance - $userTotalFine;
+            // Denda presensi dipotong langsung dari Gaji Pokok (bukan dari Net Allowance)
+            $userNetAllowance = $userRegularAllowance + $userOvertimeAllowance;
             $attendanceRate = $workingDays > 0 ? round(($presentDays / $workingDays) * 100, 1) : 0;
 
             $staffData[] = [

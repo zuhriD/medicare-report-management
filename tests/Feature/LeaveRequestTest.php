@@ -153,4 +153,90 @@ class LeaveRequestTest extends TestCase
 
         $this->assertTrue($leave->isRejected());
     }
+
+    public function test_leave_request_generates_chat_template_format()
+    {
+        $staff = User::factory()->create([
+            'office_id' => $this->office->id,
+            'name' => 'Ridho Aulia Rahman',
+        ]);
+
+        // Monday to Thursday
+        $leave = LeaveRequest::create([
+            'user_id' => $staff->id,
+            'office_id' => $this->office->id,
+            'leave_type' => 'permission',
+            'start_date' => '2026-09-21', // Monday
+            'end_date' => '2026-09-24',   // Thursday
+            'total_days' => 4,
+            'normal_fine_amount' => 200000.00,
+            'reason' => 'pulang kampung',
+            'status' => 'pending',
+        ]);
+
+        $chat = $leave->getFormattedChatTemplate('Dr. Adnan');
+
+        $this->assertStringContainsString('*Kepada Yth.*', $chat);
+        $this->assertStringContainsString('Dr. Adnan', $chat);
+        $this->assertStringContainsString('**Nama: Ridho Aulia Rahman**', $chat);
+        $this->assertStringContainsString('**Kantor: Kantor Malang**', $chat);
+        $this->assertStringContainsString('**Jenis Izin: Izin Keperluan**', $chat);
+        $this->assertStringContainsString('pulang kampung mulai hari Senin, 21 September 2026 hingga hari Kamis, 24 September 2026 (4 hari kerja)', $chat);
+        $this->assertStringContainsString('Sehubungan dengan hal tersebut, saya memohon izin kepada Dr. Adnan', $chat);
+        $this->assertStringContainsString('Hormat saya,', $chat);
+        $this->assertStringContainsString('**Ridho Aulia Rahman**', $chat);
+    }
+
+    public function test_leave_request_generates_whatsapp_chat_template()
+    {
+        $staff = User::factory()->create([
+            'office_id' => $this->office->id,
+            'name' => 'Ridho Aulia Rahman',
+        ]);
+
+        $leave = LeaveRequest::create([
+            'user_id' => $staff->id,
+            'office_id' => $this->office->id,
+            'leave_type' => 'permission',
+            'start_date' => '2026-09-21',
+            'end_date' => '2026-09-24',
+            'total_days' => 4,
+            'normal_fine_amount' => 200000.00,
+            'reason' => 'pulang kampung',
+            'status' => 'pending',
+        ]);
+
+        $waChat = $leave->getWhatsAppChatTemplate('Dr. Adnan');
+
+        $this->assertStringContainsString('*Kepada Yth.*', $waChat);
+        $this->assertStringContainsString('*Nama: Ridho Aulia Rahman*', $waChat);
+        $this->assertStringContainsString('*Kantor: Kantor Malang*', $waChat);
+        $this->assertStringContainsString('*Jenis Izin: Izin Keperluan*', $waChat);
+        $this->assertStringContainsString('pulang kampung mulai hari Senin, 21 September 2026 hingga hari Kamis, 24 September 2026 (4 hari kerja)', $waChat);
+        $this->assertStringContainsString('*Ridho Aulia Rahman*', $waChat);
+    }
+
+    public function test_authenticated_user_can_export_leave_request_pdf()
+    {
+        $leave = LeaveRequest::create([
+            'user_id' => $this->staff->id,
+            'office_id' => $this->office->id,
+            'leave_type' => 'permission',
+            'start_date' => '2026-09-21',
+            'end_date' => '2026-09-24',
+            'total_days' => 4,
+            'normal_fine_amount' => 200000.00,
+            'reason' => 'pulang kampung',
+            'status' => 'approved',
+            'approved_by' => $this->manager->id,
+            'approved_at' => now(),
+            'adjusted_fine_amount' => 0.00,
+            'approval_notes' => 'Disetujui',
+        ]);
+
+        $response = $this->actingAs($this->staff)->get(route('leave-requests.pdf', $leave));
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
+    }
 }

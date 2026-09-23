@@ -136,6 +136,8 @@ class AttendanceRecapExportController extends Controller
                 $recap['summary']['total_fine'],
                 $recap['summary']['total_net_allowance'],
             ]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['*Catatan', 'Net Allowance = Uang Kehadiran + Uang Lembur. Total Denda dipotong terpisah dari Gaji Pokok karyawan.']);
 
             fclose($handle);
         }, 200, $headers);

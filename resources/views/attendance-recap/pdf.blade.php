@@ -183,12 +183,12 @@
                 <span class="stats-value">Rp {{ number_format($recap['summary']['total_overtime_allowance'], 0, ',', '.') }}</span>
             </td>
             <td>
-                <span class="stats-label">Total Potongan Denda</span>
-                <span class="stats-value negative">Rp {{ number_format($recap['summary']['total_fine'], 0, ',', '.') }}</span>
+                <span class="stats-label">Total Net Allowance</span>
+                <span class="stats-value positive">Rp {{ number_format($recap['summary']['total_net_allowance'], 0, ',', '.') }}</span>
             </td>
             <td>
-                <span class="stats-label">Total Tunjangan Bersih</span>
-                <span class="stats-value positive">Rp {{ number_format($recap['summary']['total_net_allowance'], 0, ',', '.') }}</span>
+                <span class="stats-label">Total Denda (Potong Gaji)</span>
+                <span class="stats-value negative">Rp {{ number_format($recap['summary']['total_fine'], 0, ',', '.') }}</span>
             </td>
         </tr>
     </table>
@@ -208,8 +208,8 @@
                 <th style="width: 55px;">Jam Lembur</th>
                 <th class="text-right" style="width: 75px;">Uang Hadir</th>
                 <th class="text-right" style="width: 75px;">Uang Lembur</th>
-                <th class="text-right" style="width: 75px;">Total Denda</th>
                 <th class="text-right" style="width: 85px;">Net Allowance</th>
+                <th class="text-right" style="width: 75px;">Denda (Gaji)</th>
             </tr>
         </thead>
         <tbody>
@@ -226,11 +226,11 @@
                     <td>{{ $staff['overtime_hours'] }}h</td>
                     <td class="text-right">Rp {{ number_format($staff['regular_allowance'], 0, ',', '.') }}</td>
                     <td class="text-right">Rp {{ number_format($staff['overtime_allowance'], 0, ',', '.') }}</td>
+                    <td class="text-right font-bold text-success">
+                        Rp {{ number_format($staff['net_allowance'], 0, ',', '.') }}
+                    </td>
                     <td class="text-right {{ $staff['total_fine'] > 0 ? 'text-danger' : '' }}">
                         Rp {{ number_format($staff['total_fine'], 0, ',', '.') }}
-                    </td>
-                    <td class="text-right font-bold {{ $staff['net_allowance'] >= 0 ? 'text-success' : 'text-danger' }}">
-                        Rp {{ number_format($staff['net_allowance'], 0, ',', '.') }}
                     </td>
                 </tr>
             @empty
@@ -252,10 +252,10 @@
                 <td>{{ $recap['summary']['total_overtime_hours'] }}h</td>
                 <td class="text-right">Rp {{ number_format($recap['summary']['total_regular_allowance'], 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($recap['summary']['total_overtime_allowance'], 0, ',', '.') }}</td>
-                <td class="text-right text-danger">Rp {{ number_format($recap['summary']['total_fine'], 0, ',', '.') }}</td>
                 <td class="text-right text-success" style="font-size: 9pt;">
                     Rp {{ number_format($recap['summary']['total_net_allowance'], 0, ',', '.') }}
                 </td>
+                <td class="text-right text-danger">Rp {{ number_format($recap['summary']['total_fine'], 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -263,7 +263,7 @@
     <div class="footer">
         <table>
             <tr>
-                <td>Laporan ini digenerate secara otomatis oleh Sistem Medicare Report & Attendance Management.</td>
+                <td>*Catatan: Net Allowance = Uang Hadir + Uang Lembur. Denda presensi dipotong langsung dari Gaji Pokok karyawan.</td>
                 <td style="text-align: right;">Halaman 1 dari 1</td>
             </tr>
         </table>

@@ -89,4 +89,102 @@ class LeaveRequest extends Model
         return $query->where('start_date', '<=', $date)
             ->where('end_date', '>=', $date);
     }
+
+    public function getFormattedPeriodText(bool $withDates = true): string
+    {
+        $start = \Carbon\Carbon::parse($this->start_date)->locale('id');
+        $end = \Carbon\Carbon::parse($this->end_date)->locale('id');
+
+        $startDay = $start->isoFormat('dddd');
+        $endDay = $end->isoFormat('dddd');
+        $daysSuffix = $this->total_days ? " ({$this->total_days} hari kerja)" : '';
+
+        if ($this->start_date->eq($this->end_date)) {
+            $dateStr = $withDates ? ", {$start->isoFormat('D MMMM Y')}" : '';
+            return "hari {$startDay}{$dateStr}{$daysSuffix}";
+        }
+
+        $startDateStr = $withDates ? ", {$start->isoFormat('D MMMM Y')}" : '';
+        $endDateStr = $withDates ? ", {$end->isoFormat('D MMMM Y')}" : '';
+
+        return "mulai hari {$startDay}{$startDateStr} hingga hari {$endDay}{$endDateStr}{$daysSuffix}";
+    }
+
+    public function getLeaveTypeLabel(): string
+    {
+        return match ($this->leave_type) {
+            'sick' => 'Sakit (Sick Leave)',
+            'permission' => 'Izin Keperluan',
+            'annual_leave' => 'Cuti Tahunan',
+            default => 'Izin',
+        };
+    }
+
+    public function getFormattedChatTemplate(string $recipient = 'Dr. Adnan'): string
+    {
+        $userName = $this->user?->name ?? 'Staff';
+        $officeName = $this->office?->name ?? ($this->user?->office?->name ?? 'Medicare');
+        $leaveType = $this->getLeaveTypeLabel();
+        $reason = trim($this->reason ?? 'keperluan izin');
+        $periodText = $this->getFormattedPeriodText(true);
+
+        $planText = "{$reason} {$periodText}";
+
+        return <<<TEXT
+*Kepada Yth.*
+{$recipient}
+
+Dengan hormat,
+
+Saya yang bertanda tangan di bawah ini:
+
+*Nama: {$userName}*
+*Kantor: {$officeName}*
+*Jenis Izin: {$leaveType}*
+
+Dengan ini ingin menyampaikan permohonan izin sekaligus rencana untuk *{$planText}*.
+
+Sehubungan dengan hal tersebut, saya memohon izin kepada {$recipient} untuk dapat melaksanakan rencana tersebut. Saya akan memastikan pekerjaan dan tanggung jawab yang perlu diselesaikan telah diatur dengan baik agar tidak mengganggu pekerjaan selama saya berada di luar.
+
+Demikian permohonan ini saya sampaikan. Besar harapan saya agar {$recipient} dapat memberikan izin. Atas perhatian dan pengertiannya, saya mengucapkan terima kasih.
+
+Hormat saya,
+
+*{$userName}*
+TEXT;
+    }
+
+    public function getWhatsAppChatTemplate(string $recipient = 'Dr. Adnan'): string
+    {
+        $userName = $this->user?->name ?? 'Staff';
+        $officeName = $this->office?->name ?? ($this->user?->office?->name ?? 'Medicare');
+        $leaveType = $this->getLeaveTypeLabel();
+        $reason = trim($this->reason ?? 'keperluan izin');
+        $periodText = $this->getFormattedPeriodText(true);
+
+        $planText = "{$reason} {$periodText}";
+
+        return <<<TEXT
+*Kepada Yth.*
+{$recipient}
+
+Dengan hormat,
+
+Saya yang bertanda tangan di bawah ini:
+
+*Nama: {$userName}*
+*Kantor: {$officeName}*
+*Jenis Izin: {$leaveType}*
+
+Dengan ini ingin menyampaikan permohonan izin sekaligus rencana untuk *{$planText}*.
+
+Sehubungan dengan hal tersebut, saya memohon izin kepada {$recipient} untuk dapat melaksanakan rencana tersebut. Saya akan memastikan pekerjaan dan tanggung jawab yang perlu diselesaikan telah diatur dengan baik agar tidak mengganggu pekerjaan selama saya berada di luar.
+
+Demikian permohonan ini saya sampaikan. Besar harapan saya agar {$recipient} dapat memberikan izin. Atas perhatian dan pengertiannya, saya mengucapkan terima kasih.
+
+Hormat saya,
+
+*{$userName}*
+TEXT;
+    }
 }

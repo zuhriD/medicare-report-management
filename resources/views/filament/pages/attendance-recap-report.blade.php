@@ -302,15 +302,15 @@
             </div>
 
             <div class="recap-stat-card">
-                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Denda</div>
+                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Denda (Gaji)</div>
                 <div class="mt-1 text-lg font-bold text-rose-600 dark:text-rose-400">Rp {{ number_format($summary['total_fine'], 0, ',', '.') }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">{{ $summary['total_alpha'] }} alpha, {{ $summary['total_leaves'] }} izin</div>
+                <div class="text-xs text-gray-400 mt-0.5">Potongan gaji pokok ({{ $summary['total_alpha'] }} alpha, {{ $summary['total_leaves'] }} izin)</div>
             </div>
 
             <div class="recap-stat-card" style="border-color: #a7f3d0; background-color: #f0fdf4;">
                 <div class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Net Allowance</div>
                 <div class="mt-1 text-lg font-bold text-emerald-700">Rp {{ number_format($summary['total_net_allowance'], 0, ',', '.') }}</div>
-                <div class="text-xs text-emerald-600 mt-0.5">Total payout</div>
+                <div class="text-xs text-emerald-600 mt-0.5">Hadir + Lembur (tanpa potong denda)</div>
             </div>
         </div>
 
