@@ -4,11 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AttendanceMonitoringResource\Pages;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Services\AttendanceCalculationService;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\Fieldset;
 use Filament\Infolists\Components\Grid as InfoGrid;
@@ -27,6 +32,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class AttendanceMonitoringResource extends Resource
 {
@@ -45,28 +51,103 @@ class AttendanceMonitoringResource extends Resource
         return false; // Monitoring is populated by staff attendance events
     }
 
+    public static function canEdit(Model $record): bool
+    {
+        $user = auth()->user();
+        return $user ? $user->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin']) : false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Attendance Information')
+                Section::make('Staff & Office Information')
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('user.name')->label('Staff Name')->disabled(),
-                            TextInput::make('office.name')->label('Office')->disabled(),
-                            TextInput::make('attendance_date')->label('Date')->disabled(),
-                        ]),
-                        Grid::make(2)->schema([
-                            TextInput::make('check_in_at')->label('Check-In Time')->disabled(),
-                            TextInput::make('check_out_at')->label('Check-Out Time')->disabled(),
-                        ]),
-                        Grid::make(3)->schema([
-                            TextInput::make('working_minutes')->label('Working Minutes')->disabled(),
-                            TextInput::make('allowance_eligible')->label('Allowance Eligible')->disabled(),
-                            TextInput::make('allowance_amount')->label('Allowance Amount')->disabled(),
+                            TextInput::make('staff_name')
+                                ->label('Staff Name')
+                                ->formatStateUsing(fn (?Attendance $record) => $record?->user?->name ?? '—')
+                                ->disabled()
+                                ->dehydrated(false),
+                            TextInput::make('office_name')
+                                ->label('Office')
+                                ->formatStateUsing(fn (?Attendance $record) => $record?->office?->name ?? '—')
+                                ->disabled()
+                                ->dehydrated(false),
+                            DatePicker::make('attendance_date')
+                                ->label('Attendance Date')
+                                ->required(),
                         ]),
                     ]),
+                Section::make('Attendance Timestamps & Allowance')
+                    ->schema([
+                        Grid::make(2)->schema([
+                            DateTimePicker::make('check_in_at')
+                                ->label('Check-In Time')
+                                ->seconds(false)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, $get, $set, $record) {
+                                    static::recalculateAttendanceForm($get, $set, $record);
+                                })
+                                ->nullable(),
+                            DateTimePicker::make('check_out_at')
+                                ->label('Check-Out Time')
+                                ->seconds(false)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, $get, $set, $record) {
+                                    static::recalculateAttendanceForm($get, $set, $record);
+                                })
+                                ->nullable(),
+                        ]),
+                        Grid::make(3)->schema([
+                            TextInput::make('working_minutes')
+                                ->label('Working Duration (Minutes)')
+                                ->numeric()
+                                ->required()
+                                ->helperText('Durasi kerja efektif dalam menit.'),
+                            Toggle::make('allowance_eligible')
+                                ->label('Allowance Eligible')
+                                ->inline(false)
+                                ->helperText('Kelayakan uang saku kehadiran reguler.'),
+                            TextInput::make('allowance_amount')
+                                ->label('Allowance Amount')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->required(),
+                        ]),
+                        Textarea::make('notes')
+                            ->label('HR / Attendance Notes')
+                            ->rows(3)
+                            ->placeholder('Catatan atau alasan penyesuaian absensi oleh HR...')
+                            ->columnSpanFull(),
+                    ]),
             ]);
+    }
+
+    public static function recalculateAttendanceForm($get, $set, ?Attendance $record): void
+    {
+        $checkIn = $get('check_in_at');
+        $checkOut = $get('check_out_at');
+
+        if (filled($checkIn) && filled($checkOut)) {
+            try {
+                $in = Carbon::parse($checkIn);
+                $out = Carbon::parse($checkOut);
+                $totalBreakMinutes = $record ? $record->totalBreakMinutes() : 0;
+                $service = app(AttendanceCalculationService::class);
+                $workingMinutes = $service->calculateWorkingMinutes($in, $out, $totalBreakMinutes);
+                $set('working_minutes', $workingMinutes);
+
+                $policy = $record?->attendanceSetting ?? AttendanceSetting::active()->first();
+                if ($policy) {
+                    $eval = $service->evaluateRegularAllowance($workingMinutes, $policy);
+                    $set('allowance_eligible', $eval['allowance_eligible']);
+                    $set('allowance_amount', $eval['allowance_amount']);
+                }
+            } catch (\Throwable $e) {
+                // Ignore parsing exceptions while user is actively typing
+            }
+        }
     }
 
     public static function infolist(Infolist $infolist): Infolist
@@ -290,6 +371,8 @@ class AttendanceMonitoringResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()?->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin'])),
             ])
             ->bulkActions([]);
     }
@@ -304,6 +387,7 @@ class AttendanceMonitoringResource extends Resource
         return [
             'index' => Pages\ListAttendanceMonitorings::route('/'),
             'view' => Pages\ViewAttendanceMonitoring::route('/{record}'),
+            'edit' => Pages\EditAttendanceMonitoring::route('/{record}/edit'),
         ];
     }
 }

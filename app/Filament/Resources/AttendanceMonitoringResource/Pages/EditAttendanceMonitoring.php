@@ -4,17 +4,16 @@ namespace App\Filament\Resources\AttendanceMonitoringResource\Pages;
 
 use App\Filament\Resources\AttendanceMonitoringResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use Filament\Resources\Pages\EditRecord;
 
-class ViewAttendanceMonitoring extends ViewRecord
+class EditAttendanceMonitoring extends EditRecord
 {
     protected static string $resource = AttendanceMonitoringResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn () => auth()->user()?->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin'])),
+            Actions\ViewAction::make(),
         ];
     }
 }
