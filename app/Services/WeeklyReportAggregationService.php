@@ -71,6 +71,9 @@ class WeeklyReportAggregationService
     {
         return DailyReport::query()
             ->where('project_id', $weeklyReport->project_id)
+            ->whereHas('user.roles', function ($q) {
+                $q->whereIn('name', ['team_member', 'Team Member', 'team-member']);
+            })
             ->whereBetween('report_date', [
                 $weeklyReport->period_start->toDateString(),
                 $weeklyReport->period_end->toDateString(),

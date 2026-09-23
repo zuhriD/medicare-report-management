@@ -59,8 +59,12 @@ class AttendanceRecapService
 
         $workingDays = $this->fineService->calculateWorkingDays($startDate, $endDate, $officeId);
 
-        // Build User Query
-        $userQuery = User::query()->with(['office.attendanceSettings']);
+        // Build User Query - only for role team_member
+        $userQuery = User::query()
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['team_member', 'Team Member', 'team-member']);
+            })
+            ->with(['office.attendanceSettings']);
 
         if ($officeId) {
             $userQuery->where('office_id', $officeId);
