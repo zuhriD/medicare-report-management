@@ -5,12 +5,15 @@ namespace App\Filament\Pages;
 use App\Models\Office;
 use App\Models\User;
 use App\Services\AttendanceRecapService;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
 class AttendanceRecapReport extends Page
 {
+    use HasPageShield;
+
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?string $navigationGroup = 'HR & Attendance';
@@ -34,11 +37,6 @@ class AttendanceRecapReport extends Page
 
     public ?array $selectedStaffDetail = null;
     public bool $showDetailModal = false;
-
-    public static function canAccess(): bool
-    {
-        return true;
-    }
 
     public function mount(): void
     {
