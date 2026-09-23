@@ -11,6 +11,7 @@ use App\Services\AttendanceCalculationService;
 use App\Services\AttendancePolicyService;
 use App\Services\GeoLocationService;
 use App\Services\SelfieStorageService;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Auth;
 
 class MyAttendance extends Page
 {
+    use HasPageShield;
+
     protected static ?string $navigationIcon = 'heroicon-o-camera';
 
     protected static ?string $navigationGroup = 'HR & Attendance';

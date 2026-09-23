@@ -5,12 +5,15 @@ namespace App\Filament\Pages;
 use App\Models\Office;
 use App\Models\User;
 use App\Services\DailyAttendanceAuditService;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
 class DailyAttendanceAuditReport extends Page
 {
+    use HasPageShield;
+
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?string $navigationGroup = 'HR & Attendance';
@@ -33,11 +36,6 @@ class DailyAttendanceAuditReport extends Page
 
     public ?array $selectedBreaksDetail = null;
     public bool $showBreaksModal = false;
-
-    public static function canAccess(): bool
-    {
-        return true;
-    }
 
     public function mount(): void
     {
