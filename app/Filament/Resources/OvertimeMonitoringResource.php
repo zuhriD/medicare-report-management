@@ -3,12 +3,17 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OvertimeMonitoringResource\Pages;
+use App\Models\AttendanceSetting;
 use App\Models\Overtime;
 use App\Services\AttendanceCalculationService;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\Grid as InfoGrid;
 use Filament\Infolists\Components\IconEntry;
@@ -26,6 +31,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class OvertimeMonitoringResource extends Resource
 {
@@ -44,28 +50,100 @@ class OvertimeMonitoringResource extends Resource
         return false; // Monitoring is populated by staff overtime events
     }
 
+    public static function canEdit(Model $record): bool
+    {
+        $user = auth()->user();
+        return $user ? $user->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin']) : false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Overtime Information')
+                Section::make('Staff & Office Information')
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('attendance.user.name')->label('Staff Name')->disabled(),
-                            TextInput::make('attendance.office.name')->label('Office')->disabled(),
-                            TextInput::make('overtime_date')->label('Date')->disabled(),
-                        ]),
-                        Grid::make(2)->schema([
-                            TextInput::make('check_in_at')->label('OT Check-In Time')->disabled(),
-                            TextInput::make('check_out_at')->label('OT Check-Out Time')->disabled(),
-                        ]),
-                        Grid::make(3)->schema([
-                            TextInput::make('overtime_minutes')->label('Overtime Minutes')->disabled(),
-                            TextInput::make('allowance_eligible')->label('Allowance Eligible')->disabled(),
-                            TextInput::make('allowance_amount')->label('Allowance Amount')->disabled(),
+                            TextInput::make('attendance.user.name')
+                                ->label('Staff Name')
+                                ->disabled()
+                                ->dehydrated(false),
+                            TextInput::make('attendance.office.name')
+                                ->label('Office')
+                                ->disabled()
+                                ->dehydrated(false),
+                            DatePicker::make('overtime_date')
+                                ->label('Overtime Date')
+                                ->required(),
                         ]),
                     ]),
+                Section::make('Overtime Timestamps & Allowance')
+                    ->schema([
+                        Grid::make(2)->schema([
+                            DateTimePicker::make('check_in_at')
+                                ->label('OT Check-In Time')
+                                ->seconds(false)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, $get, $set, $record) {
+                                    static::recalculateOvertimeForm($get, $set, $record);
+                                })
+                                ->nullable(),
+                            DateTimePicker::make('check_out_at')
+                                ->label('OT Check-Out Time')
+                                ->seconds(false)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, $get, $set, $record) {
+                                    static::recalculateOvertimeForm($get, $set, $record);
+                                })
+                                ->nullable(),
+                        ]),
+                        Grid::make(3)->schema([
+                            TextInput::make('overtime_minutes')
+                                ->label('Overtime Duration (Minutes)')
+                                ->numeric()
+                                ->required()
+                                ->helperText('Durasi lembur dalam menit.'),
+                            Toggle::make('allowance_eligible')
+                                ->label('OT Allowance Eligible')
+                                ->inline(false)
+                                ->helperText('Kelayakan uang saku lembur.'),
+                            TextInput::make('allowance_amount')
+                                ->label('OT Allowance Amount')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->required(),
+                        ]),
+                        Textarea::make('notes')
+                            ->label('Overtime Notes / Reason')
+                            ->rows(3)
+                            ->placeholder('Catatan atau alasan penyesuaian lembur oleh HR...')
+                            ->columnSpanFull(),
+                    ]),
             ]);
+    }
+
+    public static function recalculateOvertimeForm($get, $set, ?Overtime $record): void
+    {
+        $checkIn = $get('check_in_at');
+        $checkOut = $get('check_out_at');
+
+        if (filled($checkIn) && filled($checkOut)) {
+            try {
+                $in = Carbon::parse($checkIn);
+                $out = Carbon::parse($checkOut);
+                $service = app(AttendanceCalculationService::class);
+                $otMinutes = $service->calculateOvertimeMinutes($in, $out);
+                $set('overtime_minutes', $otMinutes);
+
+                $policy = $record?->attendance?->attendanceSetting ?? AttendanceSetting::active()->first();
+                if ($policy) {
+                    $eval = $service->evaluateOvertimeAllowance($otMinutes, $policy);
+                    $set('allowance_eligible', $eval['allowance_eligible']);
+                    $set('allowance_amount', $eval['allowance_amount']);
+                }
+            } catch (\Throwable $e) {
+                // Ignore parsing exceptions while user is actively typing
+            }
+        }
     }
 
     public static function infolist(Infolist $infolist): Infolist
@@ -242,6 +320,8 @@ class OvertimeMonitoringResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()?->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin'])),
             ])
             ->bulkActions([]);
     }
@@ -256,6 +336,7 @@ class OvertimeMonitoringResource extends Resource
         return [
             'index' => Pages\ListOvertimeMonitorings::route('/'),
             'view' => Pages\ViewOvertimeMonitoring::route('/{record}'),
+            'edit' => Pages\EditOvertimeMonitoring::route('/{record}/edit'),
         ];
     }
 }
