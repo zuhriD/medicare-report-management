@@ -64,12 +64,14 @@ class AttendanceMonitoringResource extends Resource
                 Section::make('Staff & Office Information')
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('user.name')
+                            TextInput::make('staff_name')
                                 ->label('Staff Name')
+                                ->formatStateUsing(fn (?Attendance $record) => $record?->user?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
-                            TextInput::make('office.name')
+                            TextInput::make('office_name')
                                 ->label('Office')
+                                ->formatStateUsing(fn (?Attendance $record) => $record?->office?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
                             DatePicker::make('attendance_date')

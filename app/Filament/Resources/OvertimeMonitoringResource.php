@@ -63,12 +63,14 @@ class OvertimeMonitoringResource extends Resource
                 Section::make('Staff & Office Information')
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('attendance.user.name')
+                            TextInput::make('staff_name')
                                 ->label('Staff Name')
+                                ->formatStateUsing(fn (?Overtime $record) => $record?->attendance?->user?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
-                            TextInput::make('attendance.office.name')
+                            TextInput::make('office_name')
                                 ->label('Office')
+                                ->formatStateUsing(fn (?Overtime $record) => $record?->attendance?->office?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
                             DatePicker::make('overtime_date')
