@@ -346,7 +346,7 @@
                                 Izin Keluar Aktif
                             </span>
                             <span class="font-mono">
-                                {{ $activeBreak?->paused_at ? $activeBreak->paused_at->setTimezone($this->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i:s') : '—' }}
+                                {{ $activeBreak?->paused_at ? $activeBreak->paused_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
                             </span>
                         </div>
                         <p class="text-[11px] text-amber-900 dark:text-amber-200">
@@ -365,7 +365,7 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Jam Masuk:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayAttendance?->check_in_at ? $this->todayAttendance->check_in_at->setTimezone($this->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i:s') : '—' }}
+                                {{ $this->todayAttendance?->check_in_at ? $this->todayAttendance->check_in_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
                             </span>
                         </div>
 
@@ -385,7 +385,7 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Jam Pulang:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayAttendance?->check_out_at ? $this->todayAttendance->check_out_at->setTimezone($this->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i:s') : ($this->todayAttendance ? ($this->todayAttendance->isPaused() ? 'Dijeda (Izin)' : 'Sedang Berjalan') : '—') }}
+                                {{ $this->todayAttendance?->check_out_at ? $this->todayAttendance->check_out_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : ($this->todayAttendance ? ($this->todayAttendance->isPaused() ? 'Dijeda (Izin)' : 'Sedang Berjalan') : '—') }}
                             </span>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-gray-200/60 dark:border-gray-700/50">
@@ -555,13 +555,13 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Mulai Lembur:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayOvertime?->check_in_at ? $this->todayOvertime->check_in_at->setTimezone($this->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i:s') : '—' }}
+                                {{ $this->todayOvertime?->check_in_at ? $this->todayOvertime->check_in_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
                             </span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Selesai Lembur:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayOvertime?->check_out_at ? $this->todayOvertime->check_out_at->setTimezone($this->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i:s') : ($this->todayOvertime ? 'Sedang Berjalan' : '—') }}
+                                {{ $this->todayOvertime?->check_out_at ? $this->todayOvertime->check_out_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : ($this->todayOvertime ? 'Sedang Berjalan' : '—') }}
                             </span>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-amber-200/60 dark:border-amber-900/40">
@@ -671,10 +671,10 @@
                                 </span>
                             </td>
                             <td class="py-2.5 px-3">
-                                {{ $row->check_in_at ? $row->check_in_at->setTimezone($row->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i') : '—' }}
+                                {{ $row->check_in_at ? $row->check_in_at->setTimezone($row->office?->timezone ?? config('app.timezone'))->format('H:i') : '—' }}
                             </td>
                             <td class="py-2.5 px-3">
-                                {{ $row->check_out_at ? $row->check_out_at->setTimezone($row->office?->timezone ?? 'Asia/Kuala_Lumpur')->format('H:i') : 'In Progress' }}
+                                {{ $row->check_out_at ? $row->check_out_at->setTimezone($row->office?->timezone ?? config('app.timezone'))->format('H:i') : 'In Progress' }}
                             </td>
                             <td class="py-2.5 px-3 font-semibold">
                                 {{ $row->working_minutes ? app(\App\Services\AttendanceCalculationService::class)->formatMinutesToDuration($row->working_minutes) : '—' }}

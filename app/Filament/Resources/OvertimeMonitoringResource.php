@@ -83,6 +83,7 @@ class OvertimeMonitoringResource extends Resource
                         Grid::make(2)->schema([
                             DateTimePicker::make('check_in_at')
                                 ->label('OT Check-In Time')
+                                ->timezone(fn (?Overtime $record) => $record?->attendance?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {
@@ -91,6 +92,7 @@ class OvertimeMonitoringResource extends Resource
                                 ->nullable(),
                             DateTimePicker::make('check_out_at')
                                 ->label('OT Check-Out Time')
+                                ->timezone(fn (?Overtime $record) => $record?->attendance?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {

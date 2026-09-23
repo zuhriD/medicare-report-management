@@ -84,6 +84,7 @@ class AttendanceMonitoringResource extends Resource
                         Grid::make(2)->schema([
                             DateTimePicker::make('check_in_at')
                                 ->label('Check-In Time')
+                                ->timezone(fn (?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {
@@ -92,6 +93,7 @@ class AttendanceMonitoringResource extends Resource
                                 ->nullable(),
                             DateTimePicker::make('check_out_at')
                                 ->label('Check-Out Time')
+                                ->timezone(fn (?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {
