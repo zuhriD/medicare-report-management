@@ -119,7 +119,10 @@ class AttendanceRecapReport extends Page
 
     public function getUsersProperty(): Collection
     {
-        $query = User::orderBy('name');
+        $query = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['team_member', 'Team Member', 'team-member']);
+        })->orderBy('name');
+
         if ($this->selectedOfficeId) {
             $query->where('office_id', $this->selectedOfficeId);
         }

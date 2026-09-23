@@ -84,15 +84,19 @@ class AttendanceRecapServiceTest extends TestCase
             'is_active' => true,
         ]);
 
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'team_member', 'guard_name' => 'web']);
+
         $this->staffMalang = User::factory()->create([
             'name' => 'Staff Malang',
             'office_id' => $this->officeMalang->id,
         ]);
+        $this->staffMalang->assignRole('team_member');
 
         $this->staffMalaysia = User::factory()->create([
             'name' => 'Staff Malaysia',
             'office_id' => $this->officeMalaysia->id,
         ]);
+        $this->staffMalaysia->assignRole('team_member');
     }
 
     public function test_get_monthly_recap_calculates_attendance_allowances_and_fines_properly()
