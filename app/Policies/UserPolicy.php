@@ -25,12 +25,11 @@ class UserPolicy
      * Determine whether the user can view the model.
      *
      * @param  \App\Models\User  $user
-     * @param  \App\Models\User|null  $model
      * @return bool
      */
-    public function view(User $user, ?User $model = null): bool
+    public function view(User $user): bool
     {
-        return $user->can('view_user') || ($model && $user->id === $model->id);
+        return $user->can('view_user');
     }
 
     /**
@@ -48,12 +47,11 @@ class UserPolicy
      * Determine whether the user can update the model.
      *
      * @param  \App\Models\User  $user
-     * @param  \App\Models\User|null  $model
      * @return bool
      */
-    public function update(User $user, ?User $model = null): bool
+    public function update(User $user): bool
     {
-        return $user->can('update_user') || ($model && $user->id === $model->id);
+        return $user->can('update_user');
     }
 
     /**
