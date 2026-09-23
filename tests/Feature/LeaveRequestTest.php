@@ -178,13 +178,13 @@ class LeaveRequestTest extends TestCase
 
         $this->assertStringContainsString('*Kepada Yth.*', $chat);
         $this->assertStringContainsString('Dr. Adnan', $chat);
-        $this->assertStringContainsString('**Nama: Ridho Aulia Rahman**', $chat);
-        $this->assertStringContainsString('**Kantor: Kantor Malang**', $chat);
-        $this->assertStringContainsString('**Jenis Izin: Izin Keperluan**', $chat);
+        $this->assertStringContainsString('*Nama: Ridho Aulia Rahman*', $chat);
+        $this->assertStringContainsString('*Kantor: Kantor Malang*', $chat);
+        $this->assertStringContainsString('*Jenis Izin: Izin Keperluan*', $chat);
         $this->assertStringContainsString('pulang kampung mulai hari Senin, 21 September 2026 hingga hari Kamis, 24 September 2026 (4 hari kerja)', $chat);
         $this->assertStringContainsString('Sehubungan dengan hal tersebut, saya memohon izin kepada Dr. Adnan', $chat);
         $this->assertStringContainsString('Hormat saya,', $chat);
-        $this->assertStringContainsString('**Ridho Aulia Rahman**', $chat);
+        $this->assertStringContainsString('*Ridho Aulia Rahman*', $chat);
     }
 
     public function test_leave_request_generates_whatsapp_chat_template()

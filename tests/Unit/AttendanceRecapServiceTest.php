@@ -258,4 +258,50 @@ class AttendanceRecapServiceTest extends TestCase
         $this->assertEquals('Hari Libur (Libur Khusus Internal)', $dayBreakdown['status_label']);
         $this->assertEquals(0.00, $dayBreakdown['fine_amount']);
     }
+
+    public function test_sunday_attendance_calculates_regular_allowance_and_overtime()
+    {
+        // 2026-09-20 is a Sunday
+        $sundayDate = '2026-09-20';
+
+        $att = Attendance::create([
+            'user_id' => $this->staffMalang->id,
+            'office_id' => $this->officeMalang->id,
+            'attendance_setting_id' => $this->settingMalang->id,
+            'attendance_date' => $sundayDate,
+            'check_in_at' => "{$sundayDate} 08:00:00",
+            'check_out_at' => "{$sundayDate} 17:00:00",
+            'working_minutes' => 480,
+            'allowance_eligible' => true,
+            'allowance_amount' => 15000.00,
+        ]);
+
+        Overtime::create([
+            'attendance_id' => $att->id,
+            'overtime_date' => $sundayDate,
+            'check_in_at' => "{$sundayDate} 18:00:00",
+            'check_out_at' => "{$sundayDate} 20:00:00",
+            'overtime_minutes' => 120,
+            'allowance_eligible' => true,
+            'allowance_amount' => 20000.00,
+        ]);
+
+        $start = Carbon::parse($sundayDate);
+        $end = Carbon::parse($sundayDate);
+
+        $recap = $this->recapService->getRecapByDateRange($start, $end, $this->officeMalang->id, $this->staffMalang->id);
+
+        $staffRecap = $recap['staff_data'][0];
+        $this->assertEquals(1, $staffRecap['present_days']);
+        $this->assertEquals(15000.00, $staffRecap['regular_allowance']);
+        $this->assertEquals(20000.00, $staffRecap['overtime_allowance']);
+        $this->assertEquals(35000.00, $staffRecap['net_allowance']);
+        $this->assertEquals(0.00, $staffRecap['total_fine']);
+
+        $breakdown = $staffRecap['daily_breakdown'][$sundayDate];
+        $this->assertEquals('present', $breakdown['status']);
+        $this->assertEquals('Hadir (Hari Libur)', $breakdown['status_label']);
+        $this->assertEquals(15000.00, $breakdown['regular_allowance']);
+        $this->assertEquals(20000.00, $breakdown['overtime_allowance']);
+    }
 }

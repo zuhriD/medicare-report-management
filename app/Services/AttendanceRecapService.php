@@ -90,9 +90,10 @@ class AttendanceRecapService
             // Fetch Attendances with Overtime
             $attendances = Attendance::with('overtime')
                 ->where('user_id', $user->id)
-                ->whereBetween('attendance_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->whereDate('attendance_date', '>=', $startDate->toDateString())
+                ->whereDate('attendance_date', '<=', $endDate->toDateString())
                 ->get()
-                ->keyBy(fn ($item) => $item->attendance_date->toDateString());
+                ->keyBy(fn ($item) => is_string($item->attendance_date) ? substr($item->attendance_date, 0, 10) : $item->attendance_date->toDateString());
 
             // Fetch Approved Leaves
             $approvedLeaves = LeaveRequest::where('user_id', $user->id)
@@ -119,7 +120,7 @@ class AttendanceRecapService
             $processedLeaveIds = [];
             $dailyBreakdown = [];
 
-            $period = CarbonPeriod::create($startDate->copy()->startOfDay(), $calcEndDate->copy()->startOfDay());
+            $period = CarbonPeriod::create($startDate->copy()->startOfDay(), $endDate->copy()->startOfDay());
 
             foreach ($period as $date) {
                 $dateStr = $date->toDateString();
@@ -138,22 +139,7 @@ class AttendanceRecapService
 
                 $userHoliday = $this->holidayService->isHoliday($dateStr, $office?->id);
 
-                if ($isSunday || $userHoliday) {
-                    $holidayLabel = $userHoliday ? 'Hari Libur (' . $userHoliday->name . ')' : 'Hari Libur (Minggu)';
-                    $dailyBreakdown[$dateStr] = [
-                        'date' => $dateStr,
-                        'day_name' => $date->translatedFormat('l'),
-                        'status' => 'holiday',
-                        'status_label' => $holidayLabel,
-                        'working_minutes' => 0,
-                        'regular_allowance' => 0.00,
-                        'overtime_allowance' => $dayOtAllowance,
-                        'fine_amount' => 0.00,
-                    ];
-                    continue;
-                }
-
-                // Check attendance
+                // Check attendance (including Sunday or Holiday work)
                 if ($att && $att->isCheckedIn()) {
                     $presentDays++;
                     $dayWorkingMinutes = (int) $att->working_minutes;
@@ -164,15 +150,32 @@ class AttendanceRecapService
                         $userRegularAllowance += $dayRegularAllowance;
                     }
 
+                    $statusLabel = ($isSunday || $userHoliday) ? 'Hadir (Hari Libur)' : 'Hadir';
+
                     $dailyBreakdown[$dateStr] = [
                         'date' => $dateStr,
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'present',
-                        'status_label' => 'Hadir',
+                        'status_label' => $statusLabel,
                         'check_in_at' => $att->check_in_at?->format('H:i:s'),
                         'check_out_at' => $att->check_out_at?->format('H:i:s'),
                         'working_minutes' => $dayWorkingMinutes,
                         'regular_allowance' => $dayRegularAllowance,
+                        'overtime_allowance' => $dayOtAllowance,
+                        'fine_amount' => 0.00,
+                    ];
+                    continue;
+                }
+
+                if ($isSunday || $userHoliday) {
+                    $holidayLabel = $userHoliday ? 'Hari Libur (' . $userHoliday->name . ')' : 'Hari Libur (Minggu)';
+                    $dailyBreakdown[$dateStr] = [
+                        'date' => $dateStr,
+                        'day_name' => $date->translatedFormat('l'),
+                        'status' => 'holiday',
+                        'status_label' => $holidayLabel,
+                        'working_minutes' => 0,
+                        'regular_allowance' => 0.00,
                         'overtime_allowance' => $dayOtAllowance,
                         'fine_amount' => 0.00,
                     ];
@@ -208,19 +211,32 @@ class AttendanceRecapService
                 }
 
                 // If not present and no leave on past/today working day -> Alpha
-                $userAlphaDays++;
-                $userAlphaFine += $dailyFineRate;
+                if ($date->isPast() || $date->isToday()) {
+                    $userAlphaDays++;
+                    $userAlphaFine += $dailyFineRate;
 
-                $dailyBreakdown[$dateStr] = [
-                    'date' => $dateStr,
-                    'day_name' => $date->translatedFormat('l'),
-                    'status' => 'alpha',
-                    'status_label' => 'Alpha (Tanpa Izin)',
-                    'working_minutes' => 0,
-                    'regular_allowance' => 0.00,
-                    'overtime_allowance' => $dayOtAllowance,
-                    'fine_amount' => $dailyFineRate,
-                ];
+                    $dailyBreakdown[$dateStr] = [
+                        'date' => $dateStr,
+                        'day_name' => $date->translatedFormat('l'),
+                        'status' => 'alpha',
+                        'status_label' => 'Alpha (Tanpa Izin)',
+                        'working_minutes' => 0,
+                        'regular_allowance' => 0.00,
+                        'overtime_allowance' => $dayOtAllowance,
+                        'fine_amount' => $dailyFineRate,
+                    ];
+                } else {
+                    $dailyBreakdown[$dateStr] = [
+                        'date' => $dateStr,
+                        'day_name' => $date->translatedFormat('l'),
+                        'status' => 'upcoming',
+                        'status_label' => 'Belum Berjalan',
+                        'working_minutes' => 0,
+                        'regular_allowance' => 0.00,
+                        'overtime_allowance' => $dayOtAllowance,
+                        'fine_amount' => 0.00,
+                    ];
+                }
             }
 
             $userTotalFine = $userAlphaFine + $userLeaveFine;
