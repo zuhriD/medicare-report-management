@@ -18,7 +18,10 @@ class UserSeeder extends Seeder
         $backendSection = Section::where('name', 'Backend Developer')->first();
         $mobileSection = Section::where('name', 'Mobile Developer')->first();
 
+        $klOffice = \App\Models\Office::first();
+
         $admin = User::create([
+            'office_id' => $klOffice?->id,
             'name' => 'Admin',
             'email' => 'admin@gmail.com',
             'username' => 'admin',
@@ -29,6 +32,7 @@ class UserSeeder extends Seeder
         $admin->assignRole('super_admin');
 
         $leadPrimary = User::create([
+            'office_id' => $klOffice?->id,
             'name' => 'Primary Lead',
             'email' => 'lead@gmail.com',
             'username' => 'lead1',
@@ -39,6 +43,7 @@ class UserSeeder extends Seeder
         $leadPrimary->assignRole('lead');
 
         $developerA = User::create([
+            'office_id' => $klOffice?->id,
             'name' => 'Mobile Developer',
             'email' => 'mobile_dev@gmail.com',
             'username' => 'dev1',
