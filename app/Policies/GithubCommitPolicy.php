@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\PlanOfAction;
+use App\Models\GithubCommit;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class PlanOfActionPolicy
+class GithubCommitPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class PlanOfActionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_plan::of::action');
+        return $user->can('view_any_github::commit');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, PlanOfAction $planOfAction): bool
+    public function view(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('view_plan::of::action');
+        return $user->can('view_github::commit');
     }
 
     /**
@@ -31,23 +31,23 @@ class PlanOfActionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_plan::of::action');
+        return $user->can('create_github::commit');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, PlanOfAction $planOfAction): bool
+    public function update(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('update_plan::of::action');
+        return $user->can('update_github::commit');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, PlanOfAction $planOfAction): bool
+    public function delete(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('delete_plan::of::action');
+        return $user->can('delete_github::commit');
     }
 
     /**
@@ -55,15 +55,15 @@ class PlanOfActionPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_plan::of::action');
+        return $user->can('delete_any_github::commit');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, PlanOfAction $planOfAction): bool
+    public function forceDelete(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('force_delete_plan::of::action');
+        return $user->can('force_delete_github::commit');
     }
 
     /**
@@ -71,15 +71,15 @@ class PlanOfActionPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_plan::of::action');
+        return $user->can('force_delete_any_github::commit');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, PlanOfAction $planOfAction): bool
+    public function restore(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('restore_plan::of::action');
+        return $user->can('restore_github::commit');
     }
 
     /**
@@ -87,15 +87,15 @@ class PlanOfActionPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_plan::of::action');
+        return $user->can('restore_any_github::commit');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, PlanOfAction $planOfAction): bool
+    public function replicate(User $user, GithubCommit $githubCommit): bool
     {
-        return $user->can('replicate_plan::of::action');
+        return $user->can('replicate_github::commit');
     }
 
     /**
@@ -103,6 +103,6 @@ class PlanOfActionPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_plan::of::action');
+        return $user->can('reorder_github::commit');
     }
 }
