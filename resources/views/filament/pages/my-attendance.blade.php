@@ -804,8 +804,7 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('attendanceManager', () => ({
                 currentTime: '',
-                timezone: '{{ $this->office?->timezone ?? config('
-                app.timezone ') }}',
+                timezone: '{{ $this->office?->timezone ?? config('app.timezone') }}',
 
                 // Geolocation State
                 latitude: @entangle('latitude'),
@@ -860,27 +859,106 @@
                         return;
                     }
 
-                    this.isLocating = true;
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            this.latitude = position.coords.latitude;
-                            this.longitude = position.coords.longitude;
-                            this.accuracy = position.coords.accuracy;
-                            this.isLocating = false;
+                    if (!window.isSecureContext && location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                        console.warn('Peringatan: Browser membatasi akses Geolocation pada protokol HTTP non-secure. Pastikan domain menggunakan HTTPS.');
+                    }
 
-                            // Sync with Livewire backend
-                            this.$wire.updateCoordinates(this.latitude, this.longitude, this.accuracy);
-                        },
+                    this.isLocating = true;
+
+                    const onSuccess = (position) => {
+                        this.latitude = position.coords.latitude;
+                        this.longitude = position.coords.longitude;
+                        this.accuracy = position.coords.accuracy;
+                        this.isLocating = false;
+
+                        // Sync with Livewire backend
+                        this.$wire.updateCoordinates(this.latitude, this.longitude, this.accuracy);
+                    };
+
+                    const tryLowAccuracy = (primaryError) => {
+                        console.warn('High accuracy GPS timed out or unavailable, falling back to network triangulation...', primaryError);
+                        
+                        navigator.geolocation.getCurrentPosition(
+                            onSuccess,
+                            (fallbackError) => {
+                                // Try watchPosition as a final resort
+                                let watchId = null;
+                                const timeoutId = setTimeout(() => {
+                                    if (watchId !== null) {
+                                        navigator.geolocation.clearWatch(watchId);
+                                    }
+                                    this.isLocating = false;
+                                    this.handleGeoError(fallbackError || primaryError);
+                                }, 8000);
+
+                                try {
+                                    watchId = navigator.geolocation.watchPosition(
+                                        (watchPos) => {
+                                            clearTimeout(timeoutId);
+                                            if (watchId !== null) {
+                                                navigator.geolocation.clearWatch(watchId);
+                                            }
+                                            onSuccess(watchPos);
+                                        },
+                                        (watchErr) => {
+                                            clearTimeout(timeoutId);
+                                            if (watchId !== null) {
+                                                navigator.geolocation.clearWatch(watchId);
+                                            }
+                                            this.isLocating = false;
+                                            this.handleGeoError(watchErr);
+                                        },
+                                        {
+                                            enableHighAccuracy: false,
+                                            timeout: 7000,
+                                            maximumAge: 60000
+                                        }
+                                    );
+                                } catch (e) {
+                                    clearTimeout(timeoutId);
+                                    this.isLocating = false;
+                                    this.handleGeoError(fallbackError || primaryError);
+                                }
+                            },
+                            {
+                                enableHighAccuracy: false,
+                                timeout: 12000,
+                                maximumAge: 60000
+                            }
+                        );
+                    };
+
+                    // Step 1: Try high accuracy first with cached allowance
+                    navigator.geolocation.getCurrentPosition(
+                        onSuccess,
                         (error) => {
-                            this.isLocating = false;
-                            console.error('Geolocation error:', error);
-                            alert('Gagal mendeteksi lokasi GPS. Pastikan izin lokasi diizinkan di browser.');
-                        }, {
+                            if (error.code === 3 || error.code === 2) {
+                                // Timeout or unavailable -> immediately fallback to network positioning
+                                tryLowAccuracy(error);
+                            } else {
+                                this.isLocating = false;
+                                this.handleGeoError(error);
+                            }
+                        },
+                        {
                             enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
+                            timeout: 8000,
+                            maximumAge: 30000
                         }
                     );
+                },
+
+                handleGeoError(error) {
+                    console.error('Geolocation error:', error);
+                    let msg = 'Gagal mendeteksi lokasi GPS.';
+                    if (error.code === 1) { // PERMISSION_DENIED
+                        msg = 'Izin lokasi (GPS) ditolak/diblokir oleh browser. Harap klik ikon gembok/pengaturan di samping URL browser Anda dan ubah izin Lokasi menjadi "Allow / Izinkan".';
+                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                        msg = 'Sinyal lokasi/GPS tidak tersedia. Pastikan fitur Lokasi (Location Services) di perangkat Anda aktif.';
+                    } else if (error.code === 3) { // TIMEOUT
+                        msg = 'Waktu pencarian GPS habis (Timeout). Pastikan koneksi internet stabil dan silakan klik tombol "Refresh" lokasi sekali lagi.';
+                    }
+                    alert(msg);
                 },
 
                 async startCamera() {
