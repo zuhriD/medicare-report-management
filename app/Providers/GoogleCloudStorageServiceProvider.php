@@ -18,10 +18,17 @@ class GoogleCloudStorageServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Storage::extend('gcs', function ($app, array $config): LaravelFilesystemAdapter {
+            $keyFilePath = $config['key_file'] ?? null;
+
+            // Support both absolute and relative paths.
+            if ($keyFilePath && ! str_starts_with($keyFilePath, '/')) {
+                $keyFilePath = base_path($keyFilePath);
+            }
+
             $clientConfig = array_filter([
                 'projectId' => $config['project_id'] ?? null,
-                'keyFilePath' => $config['key_file'] ?? null,
-                'keyFile' => isset($config['key_file_json'])
+                'keyFilePath' => $keyFilePath,
+                'keyFile' => ! empty($config['key_file_json'])
                     ? json_decode($config['key_file_json'], true)
                     : null,
             ]);
@@ -29,7 +36,9 @@ class GoogleCloudStorageServiceProvider extends ServiceProvider
             $bucketName = $config['bucket'] ?? null;
 
             if (! $bucketName) {
-                throw new \InvalidArgumentException('The GCS filesystem disk requires GOOGLE_CLOUD_STORAGE_BUCKET.');
+                throw new \InvalidArgumentException(
+                    'The GCS filesystem disk requires GOOGLE_CLOUD_STORAGE_BUCKET.'
+                );
             }
 
             $adapter = new GoogleCloudStorageAdapter(
@@ -47,12 +56,14 @@ class GoogleCloudStorageServiceProvider extends ServiceProvider
             ) extends LaravelFilesystemAdapter {
                 public function url($path)
                 {
-                    $url = $this->config['url'] ?? 'https://storage.googleapis.com/' . $this->config['bucket'];
-                    
-                    if (isset($this->config['path_prefix']) && $this->config['path_prefix']) {
-                        $path = trim($this->config['path_prefix'], '/') . '/' . ltrim($path, '/');
+                    $url = $this->config['url']
+                        ?? 'https://storage.googleapis.com/' . $this->config['bucket'];
+
+                    if (! empty($this->config['path_prefix'])) {
+                        $path = trim($this->config['path_prefix'], '/') . '/'
+                            . ltrim($path, '/');
                     }
-                    
+
                     return rtrim($url, '/') . '/' . ltrim($path, '/');
                 }
             };
