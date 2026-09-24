@@ -150,7 +150,7 @@ class LeaveRequestResource extends Resource
                             ->label('Attachment / Medical Letter (Optional)')
                             ->disk('gcs')
                             ->directory('leave-attachments')
-                            ->visibility('public')
+                            ->visibility('private')
                             ->openable()
                             ->downloadable()
                             ->acceptedFileTypes(['image/*', 'application/pdf'])
@@ -266,7 +266,12 @@ class LeaveRequestResource extends Resource
                     ->label('Lampiran')
                     ->icon(fn ($state) => $state ? 'heroicon-o-document-text' : 'heroicon-o-minus')
                     ->color(fn ($state) => $state ? 'primary' : 'gray')
-                    ->url(fn ($record) => $record->attachment_path ? Storage::disk('gcs')->url($record->attachment_path) : null)
+                    ->url(fn ($record) => $record->attachment_path ? (
+                        rescue(
+                            fn () => Storage::disk('gcs')->temporaryUrl($record->attachment_path, now()->addHours(24)),
+                            fn () => Storage::disk('gcs')->url($record->attachment_path)
+                        )
+                    ) : null)
                     ->openUrlInNewTab(),
                 TextColumn::make('approver.name')
                     ->label('Approver')

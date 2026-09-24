@@ -53,18 +53,26 @@ class ReportImage extends Model
                         // Ignore read failure and fall through to URL
                     }
 
-                    return $disk->url($path);
+                    try {
+                        return Storage::disk('gcs')->temporaryUrl($path, now()->addHours(24));
+                    } catch (\Throwable $e) {
+                        return $disk->url($path);
+                    }
                 }
             } catch (\Throwable $e) {
                 // Continue to next disk
             }
         }
 
-        // Fallback to GCS disk URL if exists check failed (e.g. permission or adapter limitation)
+        // Fallback to GCS temporary or public URL
         try {
-            return Storage::disk('gcs')->url($path);
+            return Storage::disk('gcs')->temporaryUrl($path, now()->addHours(24));
         } catch (\Throwable $e) {
-            return Storage::url($path);
+            try {
+                return Storage::disk('gcs')->url($path);
+            } catch (\Throwable $e2) {
+                return Storage::url($path);
+            }
         }
     }
 }

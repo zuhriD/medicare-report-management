@@ -422,6 +422,7 @@ class DailyReportResource extends Resource
                                     ->image()
                                     ->disk('gcs')
                                     ->directory('daily-reports')
+                                    ->visibility('private')
                                     ->openable()
                                     ->downloadable()
                                     ->hiddenLabel()
