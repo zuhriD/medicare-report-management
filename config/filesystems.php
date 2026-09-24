@@ -70,7 +70,7 @@ return [
             'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
             'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
             'url' => env('GOOGLE_CLOUD_STORAGE_URL', env('GOOGLE_CLOUD_STORAGE_API_URI', 'https://storage.googleapis.com') . '/' . env('GOOGLE_CLOUD_STORAGE_BUCKET')),
-            'visibility' => env('GOOGLE_CLOUD_STORAGE_VISIBILITY', 'public'),
+            'visibility' => env('GOOGLE_CLOUD_STORAGE_VISIBILITY', 'private'),
             'throw' => true,
             'report' => false,
         ],
