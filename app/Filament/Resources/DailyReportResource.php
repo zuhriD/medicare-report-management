@@ -49,7 +49,7 @@ class DailyReportResource extends Resource
                             ->label('Main Task')
                             ->options(Module::pluck('name', 'id'))
                             ->live()
-                            ->afterStateUpdated(fn (callable $set) => $set('sub_module_id', null))
+                            ->afterStateUpdated(fn(callable $set) => $set('sub_module_id', null))
                             ->afterStateHydrated(function (callable $set, $record) {
                                 if ($record && $record->subModule) {
                                     $set('module_id', $record->subModule->module_id);
@@ -212,7 +212,7 @@ class DailyReportResource extends Resource
                                     ->orderByDesc('committed_at')
                                     ->take(500)
                                     ->get()
-                                    ->mapWithKeys(fn (GithubCommit $commit): array => [
+                                    ->mapWithKeys(fn(GithubCommit $commit): array => [
                                         $commit->id => sprintf(
                                             '[%s] %s — %s',
                                             $commit->committed_at?->format('d M Y H:i') ?? '—',
@@ -256,11 +256,11 @@ class DailyReportResource extends Resource
                                 ->icon('heroicon-o-chevron-left')
                                 ->outlined()
                                 ->iconButton()
-                                ->action(fn (Get $get, Set $set) => $set(
+                                ->action(fn(Get $get, Set $set) => $set(
                                     'commit_page',
                                     max(1, (int) $get('commit_page') - 1),
                                 ))
-                                ->visible(fn (Get $get): bool => (int) ($get('commit_page') ?? 1) > 1),
+                                ->visible(fn(Get $get): bool => (int) ($get('commit_page') ?? 1) > 1),
                             Forms\Components\Actions\Action::make('next_commit_page')
                                 ->label('Next')
                                 ->icon('heroicon-o-chevron-right')
@@ -270,15 +270,15 @@ class DailyReportResource extends Resource
                                     $total = blank($get('commit_repository_id'))
                                         ? 0
                                         : GithubCommit::query()
-                                            ->where('user_id', Auth::id())
-                                            ->where('repository_id', $get('commit_repository_id'))
-                                            ->count();
+                                        ->where('user_id', Auth::id())
+                                        ->where('repository_id', $get('commit_repository_id'))
+                                        ->count();
 
                                     $totalPages = max(1, (int) ceil($total / 10));
 
                                     $set('commit_page', min($totalPages, (int) $get('commit_page') + 1));
                                 })
-                                ->visible(fn (Get $get): bool => filled($get('commit_repository_id'))),
+                                ->visible(fn(Get $get): bool => filled($get('commit_repository_id'))),
                             Forms\Components\Actions\Action::make('add_selected_commits')
                                 ->label('Add Selected Commits to Description')
                                 ->icon('heroicon-o-plus-circle')
@@ -304,7 +304,7 @@ class DailyReportResource extends Resource
                                         ->get();
 
                                     $newItems = $commits
-                                        ->map(fn (GithubCommit $commit): string => sprintf(
+                                        ->map(fn(GithubCommit $commit): string => sprintf(
                                             '[%s] %s @ %s: %s',
                                             $commit->repository?->full_name ?? '',
                                             $commit->short_sha,
@@ -363,7 +363,7 @@ class DailyReportResource extends Resource
                                         ->get();
 
                                     $context = $commits
-                                        ->map(fn (GithubCommit $commit): string => sprintf(
+                                        ->map(fn(GithubCommit $commit): string => sprintf(
                                             '- [%s] %s: %s',
                                             $commit->repository?->full_name ?? 'unknown repo',
                                             $commit->short_sha,
@@ -379,7 +379,7 @@ class DailyReportResource extends Resource
                                         $prompt = 'Summarize the changes from these commits for a daily report. Write in clear bullet points using markdown.';
                                     }
 
-                                    $prompt .= "\n\nCommits:\n".$context;
+                                    $prompt .= "\n\nCommits:\n" . $context;
 
                                     try {
                                         $summary = app(OllamaService::class)->chat($prompt, $system);
@@ -422,7 +422,7 @@ class DailyReportResource extends Resource
                                     ->image()
                                     ->disk('gcs')
                                     ->directory('daily-reports')
-                                    ->visibility('public')
+                                    ->visibility('private')
                                     ->openable()
                                     ->downloadable()
                                     ->hiddenLabel()
@@ -438,7 +438,7 @@ class DailyReportResource extends Resource
                             ->reorderableWithButtons()
                             ->collapsible()
                             ->cloneable()
-                            ->itemLabel(fn (array $state): ?string => $state['caption'] ?? null)
+                            ->itemLabel(fn(array $state): ?string => $state['caption'] ?? null)
                             ->columns(2),
                     ]),
             ])
@@ -520,11 +520,11 @@ class DailyReportResource extends Resource
                         return $query
                             ->when(
                                 $data['start_date'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('report_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '>=', $date),
                             )
                             ->when(
                                 $data['until_date'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('report_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('report_date', '<=', $date),
                             );
                     })
                     ->columns(2)
@@ -537,7 +537,7 @@ class DailyReportResource extends Resource
                     ->label('Print')
                     ->icon('heroicon-o-printer')
                     ->color('info')
-                    ->url(fn (DailyReport $record): string => route('daily-reports.print', ['date' => $record->report_date->format('Y-m-d')]))
+                    ->url(fn(DailyReport $record): string => route('daily-reports.print', ['date' => $record->report_date->format('Y-m-d')]))
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

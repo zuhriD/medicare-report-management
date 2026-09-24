@@ -154,6 +154,13 @@ class SelfieStorageService
             return $relativePath;
         }
 
+        // 1. Try generating a signed temporary URL from GCS (valid for 24 hours)
+        try {
+            return Storage::disk('gcs')->temporaryUrl($relativePath, now()->addHours(24));
+        } catch (\Throwable $e) {
+            // Continue to disk check
+        }
+
         $disksToTry = array_unique(array_filter([
             $this->getDisk(),
             'gcs',
