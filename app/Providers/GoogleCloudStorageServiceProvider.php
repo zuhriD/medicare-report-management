@@ -41,9 +41,12 @@ class GoogleCloudStorageServiceProvider extends ServiceProvider
                 );
             }
 
+            $visibilityHandler = new \League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility();
+
             $adapter = new GoogleCloudStorageAdapter(
                 bucket: (new StorageClient($clientConfig))->bucket($bucketName),
                 prefix: trim($config['path_prefix'] ?? '', '/'),
+                visibilityHandler: $visibilityHandler,
                 defaultVisibility: ($config['visibility'] ?? 'public') === 'public'
                     ? Visibility::PUBLIC
                     : Visibility::PRIVATE,
