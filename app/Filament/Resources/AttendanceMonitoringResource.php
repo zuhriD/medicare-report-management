@@ -348,7 +348,7 @@ class AttendanceMonitoringResource extends Resource
                     ->color(fn($state) => $state === 'OT Done' ? 'warning' : 'gray')
                     ->toggleable(),
             ])
-            ->defaultSort('attendance_date', 'asc')
+            ->defaultSort('check_in_at', 'desc')
             ->filters([
                 Filter::make('date_range')
                     ->form([
