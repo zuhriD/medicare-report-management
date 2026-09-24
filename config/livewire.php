@@ -64,9 +64,9 @@ return [
     */
 
     'temporary_file_upload' => [
-        'disk' => 'gcs',        // Langsung simpan temporary ke GCS
+        'disk' => 'local',      // Sangat direkomendasikan
         'rules' => null,
-        'directory' => 'livewire-tmp',
+        'directory' => null,
         'middleware' => null,
         'preview_mimes' => [
             'png',
@@ -87,7 +87,7 @@ return [
             'wma',
         ],
         'max_upload_time' => 5,
-        'cleanup' => false,     // WAJIB FALSE agar Livewire tidak inspect folder GCS yang memicu error 404
+        'cleanup' => true,      // Otomatis bersihkan file sampah yang dibatalkan user
     ],
 
 
