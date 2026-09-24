@@ -27,6 +27,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class LeaveRequestResource extends Resource
 {
@@ -147,8 +148,11 @@ class LeaveRequestResource extends Resource
 
                         FileUpload::make('attachment_path')
                             ->label('Attachment / Medical Letter (Optional)')
-                            ->disk('public')
+                            ->disk('gcs')
                             ->directory('leave-attachments')
+                            ->visibility('public')
+                            ->openable()
+                            ->downloadable()
                             ->acceptedFileTypes(['image/*', 'application/pdf'])
                             ->maxSize(5120)
                             ->columnSpanFull()
@@ -258,6 +262,12 @@ class LeaveRequestResource extends Resource
                         'cancelled' => 'Cancelled',
                         default => 'Pending',
                     }),
+                IconColumn::make('attachment_path')
+                    ->label('Lampiran')
+                    ->icon(fn ($state) => $state ? 'heroicon-o-document-text' : 'heroicon-o-minus')
+                    ->color(fn ($state) => $state ? 'primary' : 'gray')
+                    ->url(fn ($record) => $record->attachment_path ? Storage::disk('gcs')->url($record->attachment_path) : null)
+                    ->openUrlInNewTab(),
                 TextColumn::make('approver.name')
                     ->label('Approver')
                     ->placeholder('-')
@@ -370,7 +380,7 @@ class LeaveRequestResource extends Resource
                     ->modalSubmitActionLabel('Salin ke Clipboard')
                     ->action(function (LeaveRequest $record, array $data, $livewire) {
                         $text = $data['chat_preview'] ?? $record->getFormattedChatTemplate($data['recipient'] ?? 'Dr. Adnan');
-                        
+
                         $livewire->js('
                             navigator.clipboard.writeText(' . json_encode($text) . ').then(() => {
                                 new FilamentNotification()

@@ -420,6 +420,11 @@ class DailyReportResource extends Resource
                             ->schema([
                                 Forms\Components\FileUpload::make('image_path')
                                     ->image()
+                                    ->disk('gcs')
+                                    ->directory('daily-reports')
+                                    ->visibility('public')
+                                    ->openable()
+                                    ->downloadable()
                                     ->hiddenLabel()
                                     ->required()
                                     ->imageEditor(),
