@@ -77,6 +77,7 @@ class SelfieStorageService
                 'mimetype' => 'image/webp',
             ]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Selfie upload to disk [' . $disk . '] failed, falling back to local: ' . $e->getMessage());
             // Fallback to local disk if cloud upload fails
             Storage::disk('local')->put($relativePath, $webpData);
         }

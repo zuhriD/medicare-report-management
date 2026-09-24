@@ -66,12 +66,12 @@ class AttendanceMonitoringResource extends Resource
                         Grid::make(3)->schema([
                             TextInput::make('staff_name')
                                 ->label('Staff Name')
-                                ->formatStateUsing(fn (?Attendance $record) => $record?->user?->name ?? '—')
+                                ->formatStateUsing(fn(?Attendance $record) => $record?->user?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
                             TextInput::make('office_name')
                                 ->label('Office')
-                                ->formatStateUsing(fn (?Attendance $record) => $record?->office?->name ?? '—')
+                                ->formatStateUsing(fn(?Attendance $record) => $record?->office?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
                             DatePicker::make('attendance_date')
@@ -84,7 +84,7 @@ class AttendanceMonitoringResource extends Resource
                         Grid::make(2)->schema([
                             DateTimePicker::make('check_in_at')
                                 ->label('Check-In Time')
-                                ->timezone(fn (?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
+                                ->timezone(fn(?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {
@@ -93,7 +93,7 @@ class AttendanceMonitoringResource extends Resource
                                 ->nullable(),
                             DateTimePicker::make('check_out_at')
                                 ->label('Check-Out Time')
-                                ->timezone(fn (?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
+                                ->timezone(fn(?Attendance $record) => $record?->office?->timezone ?? config('app.timezone'))
                                 ->seconds(false)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set, $record) {
@@ -172,14 +172,14 @@ class AttendanceMonitoringResource extends Resource
                             TextEntry::make('check_in_at')
                                 ->label('Check-In Timestamp')
                                 ->dateTime('d M Y, H:i:s')
-                                ->timezone(fn ($record) => $record->office?->timezone ?? config('app.timezone'))
+                                ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                                 ->placeholder('Not checked in'),
                             TextEntry::make('check_in_coordinates')
                                 ->label('GPS Location')
-                                ->getStateUsing(fn ($record) => $record->check_in_latitude && $record->check_in_longitude
+                                ->getStateUsing(fn($record) => $record->check_in_latitude && $record->check_in_longitude
                                     ? "{$record->check_in_latitude}, {$record->check_in_longitude} (±{$record->check_in_accuracy}m)"
                                     : '—')
-                                ->url(fn ($record) => $record->check_in_latitude && $record->check_in_longitude
+                                ->url(fn($record) => $record->check_in_latitude && $record->check_in_longitude
                                     ? "https://www.google.com/maps?q={$record->check_in_latitude},{$record->check_in_longitude}"
                                     : null)
                                 ->openUrlInNewTab()
@@ -200,14 +200,14 @@ class AttendanceMonitoringResource extends Resource
                             TextEntry::make('check_out_at')
                                 ->label('Check-Out Timestamp')
                                 ->dateTime('d M Y, H:i:s')
-                                ->timezone(fn ($record) => $record->office?->timezone ?? config('app.timezone'))
+                                ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                                 ->placeholder('Not checked out yet'),
                             TextEntry::make('check_out_coordinates')
                                 ->label('GPS Location')
-                                ->getStateUsing(fn ($record) => $record->check_out_latitude && $record->check_out_longitude
+                                ->getStateUsing(fn($record) => $record->check_out_latitude && $record->check_out_longitude
                                     ? "{$record->check_out_latitude}, {$record->check_out_longitude} (±{$record->check_out_accuracy}m)"
                                     : '—')
-                                ->url(fn ($record) => $record->check_out_latitude && $record->check_out_longitude
+                                ->url(fn($record) => $record->check_out_latitude && $record->check_out_longitude
                                     ? "https://www.google.com/maps?q={$record->check_out_latitude},{$record->check_out_longitude}"
                                     : null)
                                 ->openUrlInNewTab()
@@ -231,16 +231,16 @@ class AttendanceMonitoringResource extends Resource
                                     TextEntry::make('reason')->label('Alasan Izin')->weight('bold'),
                                     TextEntry::make('paused_at')->label('Jam Keluar')->dateTime('H:i:s (d M)'),
                                     TextEntry::make('resumed_at')->label('Jam Kembali')->dateTime('H:i:s (d M)')->placeholder('Sedang di Luar (Aktif)'),
-                                    TextEntry::make('duration_minutes')->label('Durasi Jeda')->formatStateUsing(fn ($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : 'Sedang Berjalan')->badge()->color(fn ($record) => $record?->isOpen() ? 'warning' : 'info'),
+                                    TextEntry::make('duration_minutes')->label('Durasi Jeda')->formatStateUsing(fn($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : 'Sedang Berjalan')->badge()->color(fn($record) => $record?->isOpen() ? 'warning' : 'info'),
                                 ]),
                                 TextEntry::make('notes')->label('Catatan Tambahan')->placeholder('—'),
                             ])
                             ->columnSpanFull()
-                            ->visible(fn ($record) => $record->breaks()->exists()),
+                            ->visible(fn($record) => $record->breaks()->exists()),
                         TextEntry::make('no_breaks_notice')
                             ->label('')
                             ->default('Tidak ada riwayat izin keluar / jeda pada kehadiran ini.')
-                            ->visible(fn ($record) => !$record->breaks()->exists()),
+                            ->visible(fn($record) => !$record->breaks()->exists()),
                     ])
                     ->collapsible(),
 
@@ -249,9 +249,9 @@ class AttendanceMonitoringResource extends Resource
                         InfoGrid::make(4)->schema([
                             TextEntry::make('working_minutes')
                                 ->label('Working Duration')
-                                ->formatStateUsing(fn ($state) => app(AttendanceCalculationService::class)->formatMinutesToDuration($state ?? 0) . " ({$state}m)")
+                                ->formatStateUsing(fn($state) => app(AttendanceCalculationService::class)->formatMinutesToDuration($state ?? 0) . " ({$state}m)")
                                 ->badge()
-                                ->color(fn ($record) => $record->allowance_eligible ? 'success' : 'warning'),
+                                ->color(fn($record) => $record->allowance_eligible ? 'success' : 'warning'),
                             IconEntry::make('allowance_eligible')
                                 ->label('Allowance Eligible')
                                 ->boolean(),
@@ -262,9 +262,9 @@ class AttendanceMonitoringResource extends Resource
                                 ->weight('bold'),
                             TextEntry::make('overtime_status')
                                 ->label('Overtime Session')
-                                ->getStateUsing(fn ($record) => $record->overtime()->exists() ? 'Recorded' : 'None')
+                                ->getStateUsing(fn($record) => $record->overtime()->exists() ? 'Recorded' : 'None')
                                 ->badge()
-                                ->color(fn ($state) => $state === 'Recorded' ? 'success' : 'gray'),
+                                ->color(fn($state) => $state === 'Recorded' ? 'success' : 'gray'),
                         ]),
                         TextEntry::make('notes')
                             ->label('Staff Notes')
@@ -286,7 +286,7 @@ class AttendanceMonitoringResource extends Resource
                     ->label('Staff')
                     ->searchable()
                     ->sortable()
-                    ->description(fn ($record) => $record->user?->username)
+                    ->description(fn($record) => $record->user?->username)
                     ->weight('bold'),
                 TextColumn::make('office.name')
                     ->label('Office')
@@ -296,13 +296,13 @@ class AttendanceMonitoringResource extends Resource
                 TextColumn::make('check_in_at')
                     ->label('Check-In')
                     ->time('H:i')
-                    ->timezone(fn ($record) => $record->office?->timezone ?? config('app.timezone'))
+                    ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('check_out_at')
                     ->label('Check-Out')
                     ->time('H:i')
-                    ->timezone(fn ($record) => $record->office?->timezone ?? config('app.timezone'))
+                    ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                     ->placeholder('In Progress')
                     ->sortable(),
                 TextColumn::make('breaks_summary')
@@ -316,13 +316,13 @@ class AttendanceMonitoringResource extends Resource
                         return "{$count}x ({$duration}){$isPaused}";
                     })
                     ->badge()
-                    ->color(fn ($record) => $record->isPaused() ? 'warning' : ($record->breaks()->count() > 0 ? 'info' : 'gray'))
+                    ->color(fn($record) => $record->isPaused() ? 'warning' : ($record->breaks()->count() > 0 ? 'info' : 'gray'))
                     ->toggleable(),
                 TextColumn::make('working_minutes')
                     ->label('Duration')
-                    ->formatStateUsing(fn ($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : '—')
+                    ->formatStateUsing(fn($state) => $state ? app(AttendanceCalculationService::class)->formatMinutesToDuration($state) : '—')
                     ->badge()
-                    ->color(fn ($record) => $record->allowance_eligible ? 'success' : 'gray')
+                    ->color(fn($record) => $record->allowance_eligible ? 'success' : 'gray')
                     ->sortable(),
                 IconColumn::make('allowance_eligible')
                     ->label('Allowance')
@@ -343,12 +343,12 @@ class AttendanceMonitoringResource extends Resource
                     ->toggleable(),
                 TextColumn::make('overtime_badge')
                     ->label('OT')
-                    ->getStateUsing(fn ($record) => $record->overtime()->exists() ? 'OT Done' : '—')
+                    ->getStateUsing(fn($record) => $record->overtime()->exists() ? 'OT Done' : '—')
                     ->badge()
-                    ->color(fn ($state) => $state === 'OT Done' ? 'warning' : 'gray')
+                    ->color(fn($state) => $state === 'OT Done' ? 'warning' : 'gray')
                     ->toggleable(),
             ])
-            ->defaultSort('attendance_date', 'desc')
+            ->defaultSort('attendance_date', 'asc')
             ->filters([
                 Filter::make('date_range')
                     ->form([
@@ -357,8 +357,8 @@ class AttendanceMonitoringResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'], fn ($q, $date) => $q->whereDate('attendance_date', '>=', $date))
-                            ->when($data['until'], fn ($q, $date) => $q->whereDate('attendance_date', '<=', $date));
+                            ->when($data['from'], fn($q, $date) => $q->whereDate('attendance_date', '>=', $date))
+                            ->when($data['until'], fn($q, $date) => $q->whereDate('attendance_date', '<=', $date));
                     }),
                 SelectFilter::make('office_id')
                     ->relationship('office', 'name')
@@ -374,7 +374,7 @@ class AttendanceMonitoringResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin'])),
+                    ->visible(fn() => auth()->user()?->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin'])),
             ])
             ->bulkActions([]);
     }
