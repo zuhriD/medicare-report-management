@@ -807,7 +807,8 @@
             Alpine.data('attendanceManager', () => ({
                 currentTime: '',
                 nowTimestamp: Date.now(),
-                timezone: '{{ $this->office?->timezone ?? config('app.timezone') }}',
+                timezone: '{{ $this->office?->timezone ?? config('
+                app.timezone ') }}',
 
                 // Geolocation State
                 latitude: @entangle('latitude'),
@@ -889,7 +890,7 @@
 
                     const tryLowAccuracy = (primaryError) => {
                         console.warn('High accuracy GPS timed out or unavailable, falling back to network triangulation...', primaryError);
-                        
+
                         navigator.geolocation.getCurrentPosition(
                             onSuccess,
                             (fallbackError) => {
@@ -919,8 +920,7 @@
                                             }
                                             this.isLocating = false;
                                             this.handleGeoError(watchErr);
-                                        },
-                                        {
+                                        }, {
                                             enableHighAccuracy: false,
                                             timeout: 7000,
                                             maximumAge: 60000
@@ -931,8 +931,8 @@
                                     this.isLocating = false;
                                     this.handleGeoError(fallbackError || primaryError);
                                 }
-                            },
-                            {
+
+                            }, {
                                 enableHighAccuracy: false,
                                 timeout: 12000,
                                 maximumAge: 60000
@@ -951,8 +951,7 @@
                                 this.isLocating = false;
                                 this.handleGeoError(error);
                             }
-                        },
-                        {
+                        }, {
                             enableHighAccuracy: true,
                             timeout: 8000,
                             maximumAge: 30000
