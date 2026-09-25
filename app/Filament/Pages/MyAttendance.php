@@ -9,6 +9,7 @@ use App\Models\Office;
 use App\Models\Overtime;
 use App\Services\AttendanceCalculationService;
 use App\Services\AttendancePolicyService;
+use App\Services\AttendanceWhatsAppNotificationService;
 use App\Services\GeoLocationService;
 use App\Services\SelfieStorageService;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -215,6 +216,9 @@ class MyAttendance extends Page
 
         $now = Carbon::now();
         $todayDate = $this->officeNow->toDateString();
+        $rawSelfie = $this->selfie;
+        $currentAccuracy = $this->accuracy;
+        $currentNotes = $this->notes;
 
         // Check duplicate
         if (Attendance::where('user_id', $this->user->id)->whereDate('attendance_date', $todayDate)->exists()) {
@@ -229,13 +233,13 @@ class MyAttendance extends Page
         // Store selfie to GCS/storage
         $selfieService = app(SelfieStorageService::class);
         $selfiePath = $selfieService->storeSelfie(
-            $this->selfie,
+            $rawSelfie,
             $this->user->id,
             'check_in',
             $now
         );
 
-        Attendance::create([
+        $attendance = Attendance::create([
             'user_id' => $this->user->id,
             'office_id' => $office->id,
             'attendance_setting_id' => $policy->id,
@@ -245,7 +249,7 @@ class MyAttendance extends Page
             'check_in_longitude' => $this->longitude,
             'check_in_accuracy' => $this->accuracy,
             'check_in_selfie' => $selfiePath,
-            'notes' => $this->notes,
+            'notes' => $currentNotes,
         ]);
 
         $this->reset(['selfie', 'notes']);
@@ -256,6 +260,22 @@ class MyAttendance extends Page
             ->body('Your check-in has been recorded at ' . $now->setTimezone($office->timezone)->format('H:i:s') . '.')
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatCheckIn($attendance, $currentNotes, $currentAccuracy, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Check-In Masuk Berhasil!',
+            'action_type' => 'check_in',
+            'action_label' => 'Check-In Masuk',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
@@ -303,18 +323,19 @@ class MyAttendance extends Page
         }
 
         $now = Carbon::now();
+        $rawSelfie = $this->selfie;
         $selfiePath = null;
-        if ($this->selfie) {
+        if ($rawSelfie) {
             $selfieService = app(SelfieStorageService::class);
             $selfiePath = $selfieService->storeSelfie(
-                $this->selfie,
+                $rawSelfie,
                 $this->user->id,
                 'pause',
                 $now
             );
         }
 
-        AttendanceBreak::create([
+        $break = AttendanceBreak::create([
             'attendance_id' => $attendance->id,
             'user_id' => $this->user->id,
             'reason' => trim($this->pauseReason),
@@ -335,6 +356,22 @@ class MyAttendance extends Page
             ->body("Absensi Anda dijeda pada pukul {$timeStr}. Jangan lupa tekan tombol 'Kembali ke Kantor' saat Anda kembali.")
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($this->office?->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatPause($attendance, $break, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Izin Keluar Tercatat',
+            'action_type' => 'pause',
+            'action_label' => 'Izin Keluar (Jeda)',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
@@ -386,11 +423,12 @@ class MyAttendance extends Page
         }
 
         $now = Carbon::now();
+        $rawSelfie = $this->selfie;
         $selfiePath = null;
-        if ($this->selfie) {
+        if ($rawSelfie) {
             $selfieService = app(SelfieStorageService::class);
             $selfiePath = $selfieService->storeSelfie(
-                $this->selfie,
+                $rawSelfie,
                 $this->user->id,
                 'resume',
                 $now
@@ -419,6 +457,22 @@ class MyAttendance extends Page
             ->body("Selamat datang kembali di kantor ({$timeStr})! Durasi izin keluar: {$durationText}.")
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatResume($attendance, $activeBreak, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Kembali ke Kantor Berhasil',
+            'action_type' => 'resume',
+            'action_label' => 'Kembali ke Kantor',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
@@ -472,6 +526,8 @@ class MyAttendance extends Page
         $now = Carbon::now();
         $policy = $attendance->attendanceSetting ?? $this->policy;
         $calcService = app(AttendanceCalculationService::class);
+        $rawSelfie = $this->selfie;
+        $currentNotes = $this->notes;
 
         // If there is still an active break open, automatically close it at checkout timestamp
         if ($activeBreak = $attendance->activeBreak()) {
@@ -488,7 +544,7 @@ class MyAttendance extends Page
         // Store selfie
         $selfieService = app(SelfieStorageService::class);
         $selfiePath = $selfieService->storeSelfie(
-            $this->selfie,
+            $rawSelfie,
             $this->user->id,
             'check_out',
             $now
@@ -508,7 +564,7 @@ class MyAttendance extends Page
             'working_minutes' => $workingMinutes,
             'allowance_eligible' => $allowanceData['allowance_eligible'],
             'allowance_amount' => $allowanceData['allowance_amount'],
-            'notes' => $this->notes ?? $attendance->notes,
+            'notes' => $currentNotes ?? $attendance->notes,
         ]);
 
         $durationText = $calcService->formatMinutesToDuration($workingMinutes);
@@ -521,6 +577,22 @@ class MyAttendance extends Page
             ->body("Working duration: {$durationText}{$breakInfoText}. Allowance: " . ($allowanceData['allowance_eligible'] ? "Qualified (RM/Rp " . number_format($allowanceData['allowance_amount'], 2) . ")" : "Not qualified") . ".")
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatCheckOut($attendance, $currentNotes, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Check-Out Pulang Berhasil!',
+            'action_type' => 'check_out',
+            'action_label' => 'Check-Out Pulang',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
@@ -574,16 +646,19 @@ class MyAttendance extends Page
 
         $now = Carbon::now();
         $todayDate = $this->officeNow->toDateString();
+        $rawSelfie = $this->selfie;
+        $currentAccuracy = $this->accuracy;
+        $currentNotes = $this->notes;
 
         $selfieService = app(SelfieStorageService::class);
         $selfiePath = $selfieService->storeSelfie(
-            $this->selfie,
+            $rawSelfie,
             $this->user->id,
             'ot_check_in',
             $now
         );
 
-        Overtime::create([
+        $overtime = Overtime::create([
             'attendance_id' => $attendance->id,
             'overtime_date' => $todayDate,
             'check_in_at' => $now,
@@ -591,7 +666,7 @@ class MyAttendance extends Page
             'check_in_longitude' => $this->longitude,
             'check_in_accuracy' => $this->accuracy,
             'check_in_selfie' => $selfiePath,
-            'notes' => $this->notes,
+            'notes' => $currentNotes,
         ]);
 
         $this->reset(['selfie', 'notes']);
@@ -602,6 +677,22 @@ class MyAttendance extends Page
             ->body('Overtime session started at ' . $now->setTimezone($office->timezone)->format('H:i:s') . '.')
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatOvertimeCheckIn($overtime, $currentNotes, $currentAccuracy, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Mulai Lembur (OT) Berhasil!',
+            'action_type' => 'ot_check_in',
+            'action_label' => 'Mulai Lembur (OT)',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
@@ -651,10 +742,12 @@ class MyAttendance extends Page
 
         $now = Carbon::now();
         $policy = $this->policy;
+        $rawSelfie = $this->selfie;
+        $currentNotes = $this->notes;
 
         $selfieService = app(SelfieStorageService::class);
         $selfiePath = $selfieService->storeSelfie(
-            $this->selfie,
+            $rawSelfie,
             $this->user->id,
             'ot_check_out',
             $now
@@ -673,7 +766,7 @@ class MyAttendance extends Page
             'overtime_minutes' => $otMinutes,
             'allowance_eligible' => $allowanceData['allowance_eligible'],
             'allowance_amount' => $allowanceData['allowance_amount'],
-            'notes' => $this->notes ?? $overtime->notes,
+            'notes' => $currentNotes ?? $overtime->notes,
         ]);
 
         $durationText = $calcService->formatMinutesToDuration($otMinutes);
@@ -685,6 +778,22 @@ class MyAttendance extends Page
             ->body("Overtime duration: {$durationText}. OT Allowance: " . ($allowanceData['allowance_eligible'] ? "Qualified (RM/Rp " . number_format($allowanceData['allowance_amount'], 2) . ")" : "Not qualified") . ".")
             ->success()
             ->send();
+
+        // Dispatch WhatsApp Share Modal
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
+        $waMessage = $waService->formatOvertimeCheckOut($overtime, $currentNotes, $photoPublicUrl);
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => 'Selesai Lembur (OT) Berhasil!',
+            'action_type' => 'ot_check_out',
+            'action_label' => 'Selesai Lembur (OT)',
+            'message' => $waMessage,
+            'photo_data_url' => $rawSelfie,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
     }
 
     /**
