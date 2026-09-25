@@ -27,18 +27,18 @@ class AttendanceWhatsAppNotificationService
      */
     public function resolvePhotoUrl(?string $providedUrl = null, ?string $selfiePath = null): ?string
     {
-        if (!empty($providedUrl) && (str_starts_with($providedUrl, 'http://') || str_starts_with($providedUrl, 'https://'))) {
-            return $providedUrl;
+        $url = !empty($providedUrl) ? $providedUrl : (!empty($selfiePath) ? app(SelfieStorageService::class)->getSelfieUrl($selfiePath) : null);
+
+        if (empty($url)) {
+            return null;
         }
 
-        if (!empty($selfiePath)) {
-            $url = app(SelfieStorageService::class)->getSelfieUrl($selfiePath);
-            if (!empty($url) && (str_starts_with($url, 'http://') || str_starts_with($url, 'https://'))) {
-                return $url;
-            }
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
         }
 
-        return null;
+        // Convert relative URL / path to full absolute URL
+        return url($url);
     }
 
     /**

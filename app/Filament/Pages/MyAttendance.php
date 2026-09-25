@@ -807,4 +807,40 @@ class MyAttendance extends Page
             ->take(15)
             ->get();
     }
+
+    /**
+     * Open WhatsApp share modal for a specific attendance record (from history table).
+     */
+    public function shareAttendanceRecord(int $attendanceId): void
+    {
+        $attendance = Attendance::with(['office', 'overtime', 'breaks', 'user'])->find($attendanceId);
+        if (!$attendance || $attendance->user_id !== $this->user?->id) {
+            return;
+        }
+
+        $waService = app(AttendanceWhatsAppNotificationService::class);
+        $office = $attendance->office;
+        $groupLink = $waService->getGroupLink($office?->whatsapp_group_link);
+        $photoPublicUrl = $attendance->check_in_selfie_url ?: null;
+
+        if ($attendance->isCheckedOut()) {
+            $message = $waService->formatCheckOut($attendance, $attendance->notes, $attendance->check_out_selfie_url ?: $photoPublicUrl);
+            $actionLabel = 'Check-Out Pulang';
+            $title = 'Laporan Absensi Pulang';
+        } else {
+            $message = $waService->formatCheckIn($attendance, $attendance->notes, $attendance->check_in_accuracy, $photoPublicUrl);
+            $actionLabel = 'Check-In Masuk';
+            $title = 'Laporan Absensi Masuk';
+        }
+
+        $this->dispatch('open-whatsapp-share-modal', [
+            'title' => $title,
+            'action_type' => 'history_share',
+            'action_label' => $actionLabel,
+            'message' => $message,
+            'photo_data_url' => null,
+            'photo_url' => $photoPublicUrl,
+            'group_link' => $groupLink,
+        ]);
+    }
 }
