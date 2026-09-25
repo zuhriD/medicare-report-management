@@ -112,13 +112,19 @@ class MyEarningsTest extends TestCase
         ]);
 
         // 3. Test Livewire component calculations
-        Livewire::test(MyEarnings::class)
+        $component = Livewire::test(MyEarnings::class)
             ->set('selectedMonth', $testMonth)
             ->set('selectedYear', $testYear)
             ->assertSuccessful()
             ->assertSee('RM 50')
             ->assertSee('RM 30')
+            ->assertSee('RM 80')
             ->assertSee('Rincian Absensi Reguler (1)')
             ->assertSee('Rincian Lembur / OT (1)');
+
+        $earningsData = $component->get('earningsData');
+        $this->assertEquals(50.00, $earningsData['regular_allowance_total']);
+        $this->assertEquals(30.00, $earningsData['overtime_allowance_total']);
+        $this->assertEquals(80.00, $earningsData['net_earnings']);
     }
 }

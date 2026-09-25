@@ -159,7 +159,8 @@ class MyEarnings extends Page
         $totalFines = (float) ($finesSummary['total_fine'] ?? 0);
 
         $grossAllowance = $regularAllowanceTotal + $overtimeAllowanceTotal;
-        $netEarnings = $grossAllowance - $totalFines;
+        // NET is attendance allowance + overtime allowance (fines are deducted directly from base salary)
+        $netEarnings = $grossAllowance;
 
         // Currency label based on office
         $currency = ($office && str_contains(strtolower($office->timezone ?? ''), 'kuala_lumpur')) ? 'RM' : 'Rp';
