@@ -28,11 +28,11 @@ class AppServiceProvider extends ServiceProvider
         });
 
         FileUpload::configureUsing(function (FileUpload $component) {
-            $component->disk('gcs')->directory('weekly-reports')->visibility('public')->maxSize(2048);
+            $component->disk('gcs')->visibility('private')->maxSize(5120);
         });
 
         RichEditor::configureUsing(function (RichEditor $component) {
-            $component->fileAttachmentsDisk('gcs')->fileAttachmentsDirectory('weekly-reports')->fileAttachmentsVisibility('public');
+            $component->fileAttachmentsDisk('gcs')->fileAttachmentsVisibility('private');
         });
     }
 }

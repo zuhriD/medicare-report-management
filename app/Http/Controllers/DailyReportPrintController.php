@@ -23,6 +23,9 @@ class DailyReportPrintController extends Controller
 
         $dailyReports = DailyReportResource::getEloquentQuery()
             ->with(['user.sections', 'subModule.module', 'reportImages'])
+            ->whereHas('user.roles', function ($q) {
+                $q->whereIn('name', ['team_member', 'Team Member', 'team-member']);
+            })
             ->whereDate('report_date', $formattedDateStr)
             ->orderBy('user_id')
             ->orderBy('created_at')

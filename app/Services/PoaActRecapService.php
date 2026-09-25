@@ -49,7 +49,12 @@ class PoaActRecapService
             ->filter()
             ->values();
 
-        $users = User::whereIn('id', $userIds)->orderBy('name')->get();
+        $users = User::whereIn('id', $userIds)
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['team_member', 'Team Member', 'team-member']);
+            })
+            ->orderBy('name')
+            ->get();
 
         $text = "PLAN OF ACTION (POA) & ACHIEVEMENT (ACT) REPORT\n";
         $text .= "Date: {$dateStr}\n\n";
