@@ -313,12 +313,32 @@ class DailyReportResource extends Resource
                                         ))
                                         ->all();
 
-                                    $current = $get('description');
-                                    if (! is_array($current)) {
-                                        $current = filled($current) ? [$current] : [];
+                                    $rawCurrent = $get('description');
+                                    $existingItems = [];
+
+                                    if (is_array($rawCurrent)) {
+                                        foreach ($rawCurrent as $item) {
+                                            if (is_array($item) && isset($item['description'])) {
+                                                $val = trim((string) $item['description']);
+                                                if ($val !== '') {
+                                                    $existingItems[] = $val;
+                                                }
+                                            } elseif (is_string($item) && trim($item) !== '') {
+                                                $existingItems[] = trim($item);
+                                            }
+                                        }
+                                    } elseif (filled($rawCurrent)) {
+                                        $existingItems[] = trim((string) $rawCurrent);
                                     }
 
-                                    $set('description', array_values(array_merge($current, $newItems)));
+                                    $allStrings = array_merge($existingItems, $newItems);
+
+                                    $formattedState = [];
+                                    foreach ($allStrings as $str) {
+                                        $formattedState[(string) Str::uuid()] = ['description' => $str];
+                                    }
+
+                                    $set('description', $formattedState);
 
                                     $set('commit_ids', []);
 
@@ -384,14 +404,32 @@ class DailyReportResource extends Resource
                                     try {
                                         $summary = app(OllamaService::class)->chat($prompt, $system);
 
-                                        $current = $get('description');
-                                        if (! is_array($current)) {
-                                            $current = filled($current) ? [$current] : [];
+                                        $rawCurrent = $get('description');
+                                        $existingItems = [];
+
+                                        if (is_array($rawCurrent)) {
+                                            foreach ($rawCurrent as $item) {
+                                                if (is_array($item) && isset($item['description'])) {
+                                                    $val = trim((string) $item['description']);
+                                                    if ($val !== '') {
+                                                        $existingItems[] = $val;
+                                                    }
+                                                } elseif (is_string($item) && trim($item) !== '') {
+                                                    $existingItems[] = trim($item);
+                                                }
+                                            }
+                                        } elseif (filled($rawCurrent)) {
+                                            $existingItems[] = trim((string) $rawCurrent);
                                         }
 
-                                        $current[] = $summary;
+                                        $allStrings = array_merge($existingItems, [$summary]);
 
-                                        $set('description', array_values(array_filter($current)));
+                                        $formattedState = [];
+                                        foreach ($allStrings as $str) {
+                                            $formattedState[(string) Str::uuid()] = ['description' => $str];
+                                        }
+
+                                        $set('description', $formattedState);
 
                                         Notification::make()
                                             ->title('AI summary added to description')
