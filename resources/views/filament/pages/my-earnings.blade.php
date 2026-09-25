@@ -181,7 +181,7 @@
                 <div class="space-y-1">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Total Denda / Potongan
+                            Total Denda (Potong Gaji)
                         </span>
                         <span class="p-2 rounded-xl earn-badge-rose">
                             <x-heroicon-o-exclamation-triangle class="w-4 h-4" />
@@ -213,7 +213,7 @@
                     </div>
                 </div>
                 <div class="pt-3 mt-3 border-t border-blue-200/50 dark:border-blue-800/40 text-[10px] text-blue-800 dark:text-blue-300 font-semibold flex items-center justify-between">
-                    <span>(Tunjangan + OT) - Denda</span>
+                    <span>Tunjangan Hadir + Lembur</span>
                     <span>{{ $data['period_label'] ?? '' }}</span>
                 </div>
             </div>
@@ -268,7 +268,7 @@
                     <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800 space-y-3 lg:col-span-1">
                         <h4 class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                             <x-heroicon-o-calculator class="w-4 h-4 text-blue-500" />
-                            Rincian Perhitungan Bersih
+                            Rincian Pendapatan Bersih
                         </h4>
 
                         <div class="space-y-2 text-xs divide-y divide-gray-200/60 dark:divide-gray-700/60">
@@ -280,21 +280,27 @@
                                 <span class="text-gray-500 dark:text-gray-400">Tunjangan Lembur (OT)</span>
                                 <span class="font-bold text-amber-600 dark:text-amber-400">+ {{ $currency }} {{ number_format($data['overtime_allowance_total'] ?? 0, 0, ',', '.') }}</span>
                             </div>
-                            <div class="flex justify-between items-center pt-2">
-                                <span class="text-gray-500 dark:text-gray-400">Total Kotor (Gross)</span>
-                                <span class="font-black text-gray-900 dark:text-white">{{ $currency }} {{ number_format($data['gross_allowance'] ?? 0, 0, ',', '.') }}</span>
+                            <div class="flex justify-between items-center pt-3 font-extrabold text-sm border-t-2 border-gray-300 dark:border-gray-600">
+                                <span class="text-gray-900 dark:text-white">Total Pendapatan Bersih (Net)</span>
+                                <span class="text-blue-600 dark:text-blue-400">{{ $currency }} {{ number_format($data['net_earnings'] ?? 0, 0, ',', '.') }}</span>
                             </div>
-                            <div class="flex justify-between items-center pt-2 text-rose-600 dark:text-rose-400">
-                                <span>Potongan Denda Alpha ({{ $data['total_alpha_days'] }} hari)</span>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 dark:border-gray-700 space-y-2 text-xs">
+                            <div class="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Catatan Denda (Dipotong dari Gaji)
+                            </div>
+                            <div class="flex justify-between items-center text-rose-600 dark:text-rose-400">
+                                <span>Denda Alpha ({{ $data['total_alpha_days'] }} hari)</span>
                                 <span class="font-bold">- {{ $currency }} {{ number_format($data['total_alpha_fine'] ?? 0, 0, ',', '.') }}</span>
                             </div>
-                            <div class="flex justify-between items-center pt-2 text-rose-600 dark:text-rose-400">
-                                <span>Potongan Denda Izin</span>
+                            <div class="flex justify-between items-center text-rose-600 dark:text-rose-400">
+                                <span>Denda Izin / Cuti</span>
                                 <span class="font-bold">- {{ $currency }} {{ number_format($data['total_leave_fine'] ?? 0, 0, ',', '.') }}</span>
                             </div>
-                            <div class="flex justify-between items-center pt-3 font-extrabold text-sm border-t-2 border-gray-300 dark:border-gray-600">
-                                <span class="text-gray-900 dark:text-white">Total Bersih (Net)</span>
-                                <span class="text-blue-600 dark:text-blue-400">{{ $currency }} {{ number_format($data['net_earnings'] ?? 0, 0, ',', '.') }}</span>
+                            <div class="flex justify-between items-center pt-1 font-bold text-rose-700 dark:text-rose-400 border-t border-gray-200 dark:border-gray-700">
+                                <span>Total Denda Periode Ini</span>
+                                <span>- {{ $currency }} {{ number_format($data['total_fines'] ?? 0, 0, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
