@@ -76,60 +76,115 @@
             border-color: #6b21a8;
         }
 
-        .att-btn-primary {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 0.75rem;
-            transition: all 0.2s ease;
+        .att-btn-primary,
+        button.att-btn-primary,
+        a.att-btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 0.75rem !important;
+            border: none !important;
+            transition: all 0.2s ease !important;
         }
 
-        .att-btn-primary:hover:not(:disabled) {
-            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        .att-btn-primary:hover:not(:disabled),
+        button.att-btn-primary:hover:not(:disabled),
+        a.att-btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+            background-color: #1d4ed8 !important;
+            color: #ffffff !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
         }
 
-        .att-btn-success {
-            background: linear-gradient(135deg, #059669, #047857);
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 0.75rem;
-            transition: all 0.2s ease;
+        .att-btn-success,
+        button.att-btn-success,
+        a.att-btn-success {
+            background: linear-gradient(135deg, #059669, #047857) !important;
+            background-color: #059669 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 0.75rem !important;
+            border: none !important;
+            transition: all 0.2s ease !important;
         }
 
-        .att-btn-success:hover:not(:disabled) {
-            background: linear-gradient(135deg, #047857, #065f46);
+        .att-btn-success:hover:not(:disabled),
+        button.att-btn-success:hover:not(:disabled),
+        a.att-btn-success:hover:not(:disabled) {
+            background: linear-gradient(135deg, #047857, #065f46) !important;
+            background-color: #047857 !important;
+            color: #ffffff !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
         }
 
-        .att-btn-danger {
-            background: linear-gradient(135deg, #e11d48, #be123c);
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 0.75rem;
-            transition: all 0.2s ease;
+        .att-btn-danger,
+        button.att-btn-danger,
+        a.att-btn-danger {
+            background: linear-gradient(135deg, #e11d48, #be123c) !important;
+            background-color: #e11d48 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 0.75rem !important;
+            border: none !important;
+            transition: all 0.2s ease !important;
         }
 
-        .att-btn-danger:hover:not(:disabled) {
-            background: linear-gradient(135deg, #be123c, #9f1239);
+        .att-btn-danger:hover:not(:disabled),
+        button.att-btn-danger:hover:not(:disabled),
+        a.att-btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, #be123c, #9f1239) !important;
+            background-color: #be123c !important;
+            color: #ffffff !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+            box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25) !important;
         }
 
-        .att-btn-warning {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 0.75rem;
-            transition: all 0.2s ease;
+        .att-btn-warning,
+        button.att-btn-warning,
+        a.att-btn-warning {
+            background: linear-gradient(135deg, #d97706, #b45309) !important;
+            background-color: #d97706 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 0.75rem !important;
+            border: none !important;
+            transition: all 0.2s ease !important;
         }
 
-        .att-btn-warning:hover:not(:disabled) {
-            background: linear-gradient(135deg, #b45309, #92400e);
+        .att-btn-warning:hover:not(:disabled),
+        button.att-btn-warning:hover:not(:disabled),
+        a.att-btn-warning:hover:not(:disabled) {
+            background: linear-gradient(135deg, #b45309, #92400e) !important;
+            background-color: #b45309 !important;
+            color: #ffffff !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25) !important;
+        }
+
+        .att-btn-wa,
+        button.att-btn-wa,
+        a.att-btn-wa {
+            background: linear-gradient(135deg, #25D366, #128C7E) !important;
+            background-color: #25D366 !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 0.875rem !important;
+            border: none !important;
+            box-shadow: 0 4px 14px 0 rgba(37, 211, 102, 0.35) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .att-btn-wa:hover:not(:disabled),
+        button.att-btn-wa:hover:not(:disabled),
+        a.att-btn-wa:hover:not(:disabled) {
+            background: linear-gradient(135deg, #20bd5a, #0e7266) !important;
+            background-color: #20bd5a !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px 0 rgba(37, 211, 102, 0.45) !important;
         }
     </style>
 
@@ -658,7 +713,8 @@
                             <th class="py-2.5 px-3">Tunjangan Reg.</th>
                             <th class="py-2.5 px-3">Durasi Lembur</th>
                             <th class="py-2.5 px-3">Tunjangan OT</th>
-                            <th class="py-2.5 px-3 rounded-r-lg">Selfie</th>
+                            <th class="py-2.5 px-3">Selfie</th>
+                            <th class="py-2.5 px-3 rounded-r-lg text-center">Aksi / WA</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -711,10 +767,19 @@
                                 <span class="text-gray-400">—</span>
                                 @endif
                             </td>
+                            <td class="py-2.5 px-3 text-center">
+                                <button
+                                    type="button"
+                                    wire:click="shareAttendanceRecord({{ $row->id }})"
+                                    class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold rounded-lg border border-emerald-300 dark:border-emerald-700 transition flex items-center gap-1 mx-auto cursor-pointer shadow-sm">
+                                    <x-heroicon-m-share class="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Bagikan WA</span>
+                                </button>
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="py-4 text-center text-gray-400 text-xs">
+                            <td colspan="10" class="py-4 text-center text-gray-400 text-xs">
                                 Belum ada data absensi.
                             </td>
                         </tr>
@@ -800,125 +865,161 @@
         </div>
         @endif
 
-        {{-- 5. Modal Dialog: Kirim Laporan ke WhatsApp Group --}}
+        {{-- 5. Modal Dialog: Kirim Laporan ke WhatsApp Group (Seamless & Modern) --}}
         <div
             x-show="showWaModal"
             x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
             style="display: none;">
+            
+            {{-- Backdrop with smooth blur & fade --}}
             <div
-                @click.away="closeWaModal()"
-                class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-5 border border-gray-200 dark:border-gray-700 transform transition-all my-8">
-                
-                {{-- Header with Success Badge --}}
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700/80">
-                    <div class="flex items-center gap-3">
-                        <span class="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                            <x-heroicon-s-check-circle class="w-6 h-6" />
-                        </span>
-                        <div>
-                            <h3 class="text-base font-black text-gray-900 dark:text-white" x-text="waShareData.title || 'Absensi Berhasil'"></h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Siap dilaporkan ke WhatsApp Group</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="closeWaModal()"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
-                        <x-heroicon-m-x-mark class="w-5 h-5" />
-                    </button>
-                </div>
+                x-show="showWaModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="closeWaModal()"
+                class="fixed inset-0 bg-gray-950/75 backdrop-blur-md transition-opacity"></div>
 
-                {{-- Photo Preview & Details --}}
-                <div class="space-y-3">
-                    <template x-if="waShareData.photo_data_url">
-                        <div class="relative w-full aspect-video max-h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center">
-                            <img :src="waShareData.photo_data_url" class="w-full h-full object-cover" alt="Selfie Absensi" />
-                            <div class="absolute bottom-2 left-2 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-semibold flex items-center gap-1">
-                                <x-heroicon-m-camera class="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Foto Selfie Terlampir</span>
+            {{-- Modal Card Container --}}
+            <div
+                x-show="showWaModal"
+                x-transition:enter="ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 max-w-lg w-full overflow-hidden z-10 my-auto">
+                
+                {{-- Top Emerald Gradient Accent Bar --}}
+                <div class="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600"></div>
+
+                <div class="p-5 sm:p-6 space-y-4">
+                    {{-- Header with WhatsApp Badge & Close Button --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 ring-1 ring-emerald-500/20 shadow-sm">
+                                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold text-gray-900 dark:text-white" x-text="waShareData.title || 'Absensi Berhasil!'"></h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Siap dilaporkan ke WhatsApp Group</p>
                             </div>
                         </div>
-                    </template>
+                        <button
+                            type="button"
+                            @click="closeWaModal()"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
+                            <x-heroicon-m-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
 
-                    {{-- Text Message Preview Box --}}
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <x-heroicon-m-chat-bubble-left-ellipsis class="w-3.5 h-3.5 text-blue-500" />
+                    {{-- WhatsApp Chat Bubble Preview Card --}}
+                    <div class="bg-emerald-50/50 dark:bg-gray-950/60 border border-emerald-200/60 dark:border-emerald-900/40 rounded-2xl p-3.5 space-y-3 shadow-inner">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                <x-heroicon-m-chat-bubble-left-right class="w-4 h-4 text-emerald-600" />
                                 Format Pesan WhatsApp:
-                            </label>
-                            <span x-show="isCopied" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                ✓ Teks Tersalin!
                             </span>
+
+                            {{-- Quick Copy Pill --}}
+                            <button
+                                type="button"
+                                @click="copyWhatsAppText()"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer shadow-sm"
+                                :class="isCopied ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'">
+                                <template x-if="isCopied">
+                                    <span class="flex items-center gap-1">
+                                        <x-heroicon-m-check class="w-3.5 h-3.5" /> Tersalin!
+                                    </span>
+                                </template>
+                                <template x-if="!isCopied">
+                                    <span class="flex items-center gap-1">
+                                        <x-heroicon-m-clipboard-document class="w-3.5 h-3.5 text-blue-500" /> Salin Teks
+                                    </span>
+                                </template>
+                            </button>
                         </div>
-                        <div
-                            class="p-3 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-2xl font-mono text-[11px] text-gray-800 dark:text-gray-200 max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed select-all">
+
+                        {{-- Photo Preview inside Chat Bubble --}}
+                        <template x-if="waShareData.photo_data_url || waShareData.photo_url">
+                            <div class="relative w-full aspect-video max-h-40 bg-gray-950 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center">
+                                <img :src="waShareData.photo_data_url || waShareData.photo_url" class="w-full h-full object-cover" alt="Selfie Absensi" />
+                                <div class="absolute bottom-2 left-2 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-semibold flex items-center gap-1">
+                                    <x-heroicon-m-camera class="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Foto Selfie Terlampir</span>
+                                </div>
+                            </div>
+                        </template>
+
+                        {{-- Formatted Message Box --}}
+                        <div class="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl font-mono text-[11px] text-gray-800 dark:text-gray-200 max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed select-all shadow-inner">
                             <span x-text="waShareData.message"></span>
                         </div>
-                    </div>
-                </div>
 
-                {{-- Primary Action Buttons --}}
-                <div class="space-y-2 pt-1">
-                    {{-- Notice: Auto copied --}}
-                    <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-2 font-bold">
-                            <x-heroicon-s-clipboard-document-check class="w-5 h-5 text-emerald-600 shrink-0" />
-                            <span>Teks laporan otomatis tersalin ke Clipboard!</span>
+                        {{-- Meta bar inside bubble: Auto-copy indicator & WhatsApp double checkmark --}}
+                        <div class="flex items-center justify-between text-[10.5px] text-gray-500 dark:text-gray-400 px-0.5">
+                            <span class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                                Teks otomatis tersalin ke Clipboard
+                            </span>
+                            <span class="flex items-center gap-1 font-mono text-[10px] opacity-80">
+                                <span x-text="currentTime"></span>
+                                <span class="text-blue-500 font-black">✓✓</span>
+                            </span>
                         </div>
-                        <span class="text-[10px] bg-emerald-200/60 dark:bg-emerald-800/60 px-2 py-0.5 rounded-full font-bold">Siap Paste</span>
                     </div>
 
-                    {{-- If WhatsApp Group link exists --}}
-                    <template x-if="waShareData.group_link">
-                        <a
-                            :href="waShareData.group_link"
-                            target="_blank"
-                            @click="copyWhatsAppText()"
-                            class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2.5 transition transform hover:-translate-y-0.5 cursor-pointer">
-                            <svg class="w-5 h-5 fill-current shrink-0" viewBox="0 0 24 24">
-                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                            </svg>
-                            <span>Buka Grup WhatsApp & Tempel Pesan (Paste)</span>
-                        </a>
-                    </template>
+                    {{-- Actions Section --}}
+                    <div class="space-y-2.5 pt-1">
+                        {{-- 1. Big WhatsApp Primary Action --}}
+                        <template x-if="waShareData.group_link">
+                            <button
+                                type="button"
+                                @click="openWhatsAppGroupAndCopy()"
+                                class="w-full py-3.5 px-4 att-btn-wa text-sm font-extrabold flex items-center justify-center gap-2.5 cursor-pointer shadow-lg group">
+                                <svg class="w-5 h-5 fill-current shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                </svg>
+                                <span>Buka Grup WhatsApp & Tempel Pesan</span>
+                            </button>
+                        </template>
 
-                    {{-- Secondary action: Web Share API / Direct Link --}}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <button
-                            type="button"
-                            @click="shareReportToWhatsApp()"
-                            class="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow">
-                            <x-heroicon-m-share class="w-4 h-4" />
-                            <span>Bagikan Langsung (Foto + Teks)</span>
-                        </button>
+                        {{-- 2. Secondary Row: Mobile Direct Share & Dismiss --}}
+                        <div class="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                @click="shareReportToWhatsApp()"
+                                class="py-2.5 px-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-gray-200 dark:border-gray-700 shadow-sm">
+                                <x-heroicon-m-share class="w-4 h-4 text-blue-500" />
+                                <span>Bagikan Langsung</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            @click="copyWhatsAppText()"
-                            class="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-                            <x-heroicon-m-clipboard-document-check class="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            <span x-text="isCopied ? 'Tersalin ke Clipboard!' : 'Salin Ulang Pesan'"></span>
-                        </button>
+                            <button
+                                type="button"
+                                @click="closeWaModal()"
+                                class="py-2.5 px-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-gray-200 dark:border-gray-700 shadow-sm">
+                                <x-heroicon-m-check class="w-4 h-4 text-emerald-500" />
+                                <span>Selesai / Tutup</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <button
-                        type="button"
-                        @click="closeWaModal()"
-                        class="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition cursor-pointer">
-                        Selesai / Tutup
-                    </button>
-                </div>
+                    {{-- Subtle Tips Banner --}}
+                    <div class="px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-950/40 border border-gray-200/80 dark:border-gray-800 text-[10.5px] text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <x-heroicon-m-light-bulb class="w-4 h-4 text-amber-500 shrink-0" />
+                        <p class="leading-tight">
+                            Format teks telah disalin. Cukup tekan <strong>Paste (Ctrl+V)</strong> di dalam grup WhatsApp.
+                        </p>
+                    </div>
 
-                {{-- Helpful Tip --}}
-                <div class="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-[10px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
-                    <x-heroicon-m-information-circle class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <p class="leading-relaxed">
-                        <strong>Tips:</strong> Format laporan sudah otomatis disalin ke clipboard beserta link foto. Tinggal klik <strong>Buka Grup WA</strong> lalu tekan <strong>Paste (Ctrl+V)</strong> dan kirim.
-                    </p>
                 </div>
-
             </div>
         </div>
     </div>
@@ -929,8 +1030,7 @@
             Alpine.data('attendanceManager', () => ({
                 currentTime: '',
                 nowTimestamp: Date.now(),
-                timezone: '{{ $this->office?->timezone ?? config('
-                app.timezone ') }}',
+                timezone: '{{ $this->office?->timezone ?? config('app.timezone') }}',
 
                 // Geolocation State
                 latitude: @entangle('latitude'),
@@ -1194,12 +1294,30 @@
                     const photoUrl = this.waShareData.photo_url;
 
                     // 1. Try Mobile Web Share API with image file attachment
-                    if (photoDataUrl && navigator.canShare) {
+                    if (navigator.canShare) {
                         try {
-                            const file = this.dataURLtoFile(photoDataUrl, 'selfie_absensi_' + Date.now() + '.jpg');
-                            if (navigator.canShare({ files: [file] })) {
+                            let file = null;
+                            if (photoDataUrl) {
+                                file = this.dataURLtoFile(photoDataUrl, 'selfie_absensi_' + Date.now() + '.jpg');
+                            } else if (photoUrl) {
+                                try {
+                                    const res = await fetch(photoUrl);
+                                    const blob = await res.blob();
+                                    file = new File([blob], 'selfie_absensi_' + Date.now() + '.jpg', { type: blob.type || 'image/jpeg' });
+                                } catch (e) {
+                                    console.warn('Could not fetch photo blob:', e);
+                                }
+                            }
+
+                            if (file && navigator.canShare({ files: [file] })) {
                                 await navigator.share({
                                     files: [file],
+                                    title: this.waShareData.action_label || 'Laporan Absensi',
+                                    text: text
+                                });
+                                return;
+                            } else if (navigator.canShare({ text: text })) {
+                                await navigator.share({
                                     title: this.waShareData.action_label || 'Laporan Absensi',
                                     text: text
                                 });
@@ -1221,10 +1339,40 @@
 
                 copyWhatsAppText() {
                     let fullText = this.waShareData.message;
-                    navigator.clipboard.writeText(fullText).then(() => {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(fullText).then(() => {
+                            this.isCopied = true;
+                            setTimeout(() => { this.isCopied = false; }, 3000);
+                        }).catch(() => {
+                            this.fallbackCopyText(fullText);
+                        });
+                    } else {
+                        this.fallbackCopyText(fullText);
+                    }
+                },
+
+                fallbackCopyText(text) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
                         this.isCopied = true;
                         setTimeout(() => { this.isCopied = false; }, 3000);
-                    });
+                    } catch (err) {
+                        console.error('Fallback copy failed', err);
+                    }
+                    document.body.removeChild(textArea);
+                },
+
+                openWhatsAppGroupAndCopy() {
+                    this.copyWhatsAppText();
+                    const link = this.waShareData.group_link || ('https://api.whatsapp.com/send?text=' + encodeURIComponent(this.waShareData.message));
+                    window.open(link, '_blank');
                 },
 
                 dataURLtoFile(dataurl, filename) {
