@@ -69,12 +69,12 @@ class ManageAllowancePeriod extends ManageRelatedRecords
                 ->label('Tambah Staff')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
+                ->modalHeading('Tambah Staff ke Periode Ini')
+                ->modalDescription('Pilih staff yang belum masuk dalam periode ini. Gunakan tombol Select all atau kolom pencarian untuk memilih banyak staff dengan cepat.')
+                ->modalWidth('3xl')
                 ->form([
-                    Select::make('user_ids')
-                        ->label('Pilih Staff Baru')
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
+                    \Filament\Forms\Components\CheckboxList::make('user_ids')
+                        ->label('Daftar Staff Tersedia')
                         ->options(function () use ($period) {
                             $existingUserIds = $period->periodStaff()->pluck('user_id')->toArray();
                             $query = User::query()
@@ -82,6 +82,7 @@ class ManageAllowancePeriod extends ManageRelatedRecords
                                 ->whereHas('roles', function ($q) {
                                     $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']);
                                 })
+                                ->with('office')
                                 ->orderBy('name');
 
                             if ($period->office_id) {
@@ -89,10 +90,14 @@ class ManageAllowancePeriod extends ManageRelatedRecords
                             }
 
                             return $query->get()->mapWithKeys(function ($u) {
-                                $off = $u->office ? " ({$u->office->name})" : "";
-                                return [$u->id => "{$u->name}{$off} - {$u->email}"];
+                                $off = $u->office ? " [{$u->office->name}]" : " [Tanpa Kantor]";
+                                return [$u->id => "{$u->name}{$off} — {$u->email}"];
                             });
                         })
+                        ->searchable()
+                        ->bulkToggleable()
+                        ->columns(2)
+                        ->gridDirection('row')
                         ->required(),
                 ])
                 ->action(function (array $data) use ($period) {

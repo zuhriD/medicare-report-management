@@ -89,8 +89,16 @@ class AllowancePeriodResource extends Resource
                             ->preload()
                             ->placeholder('Semua Kantor / Multi Office')
                             ->live()
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('selected_staff_ids', []);
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                $mode = $get('staff_selection_mode') ?? 'by_office';
+                                if ($mode === 'by_office') {
+                                    $query = User::query()
+                                        ->whereHas('roles', fn ($q) => $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']));
+                                    if ($state) {
+                                        $query->where('office_id', $state);
+                                    }
+                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
+                                }
                             }),
 
                         Select::make('status')
@@ -125,32 +133,61 @@ class AllowancePeriodResource extends Resource
                     ->columns(2),
 
                 Section::make('Pemilihan Staff')
-                    ->description('Pilih staff yang akan dimasukkan ke dalam periode pembayaran ini. Sistem akan mengalkulasi rekaman kehadiran dan lembur yang eligible.')
+                    ->description('Pilih staff yang akan dimasukkan ke dalam periode pembayaran ini. Gunakan mode otomatis atau tombol Select All untuk memilih puluhan staff dalam satu klik.')
                     ->schema([
-                        Select::make('selected_staff_ids')
-                            ->label('Daftar Staff')
-                            ->multiple()
-                            ->searchable()
-                            ->preload()
+                        \Filament\Forms\Components\Radio::make('staff_selection_mode')
+                            ->label('Metode Pemilihan Cepat')
+                            ->options([
+                                'by_office' => 'Semua Staff di Kantor Terpilih (Otomatis Pilih Semua)',
+                                'all' => 'Semua Staff Seluruh Kantor (All Active Staff)',
+                                'custom' => 'Pilih Manual / Multi-Select Tertentu',
+                            ])
+                            ->default('by_office')
+                            ->inline()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                $officeId = $get('office_id');
+                                $query = User::query()
+                                    ->whereHas('roles', fn ($q) => $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']));
+
+                                if ($state === 'by_office') {
+                                    if ($officeId) {
+                                        $query->where('office_id', $officeId);
+                                    }
+                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
+                                } elseif ($state === 'all') {
+                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
+                                }
+                            })
+                            ->columnSpanFull(),
+
+                        \Filament\Forms\Components\CheckboxList::make('selected_staff_ids')
+                            ->label('Daftar Staff Terpilih')
                             ->options(function (Get $get) {
                                 $officeId = $get('office_id');
+                                $mode = $get('staff_selection_mode');
                                 $query = User::query()
                                     ->whereHas('roles', function ($q) {
                                         $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']);
                                     })
+                                    ->with('office')
                                     ->orderBy('name');
 
-                                if ($officeId) {
+                                if ($mode === 'by_office' && $officeId) {
                                     $query->where('office_id', $officeId);
                                 }
 
                                 return $query->get()->mapWithKeys(function ($user) {
-                                    $office = $user->office ? " ({$user->office->name})" : "";
-                                    return [$user->id => "{$user->name}{$office} - {$user->email}"];
+                                    $officeName = $user->office ? " [{$user->office->name}]" : " [Tanpa Kantor]";
+                                    return [$user->id => "{$user->name}{$officeName} — {$user->email}"];
                                 });
                             })
-                            ->helperText('Pilih satu atau beberapa staff. Anda dapat memilih staff spesifik untuk skenario custom period.')
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->columns(2)
+                            ->gridDirection('row')
                             ->required()
+                            ->helperText('Klik "Select all" di atas untuk memilih seluruh staff sekaligus, atau gunakan pencarian untuk memfilter nama.')
                             ->columnSpanFull(),
                     ])
                     ->hiddenOn('edit'),
