@@ -552,7 +552,7 @@ class MyAttendance extends Page
 
         // Calculate working duration deducting total break minutes & evaluate allowance
         $totalBreakMinutes = $attendance->totalBreakMinutes();
-        $workingMinutes = $calcService->calculateWorkingMinutes($attendance->check_in_at, $now, $totalBreakMinutes);
+        $workingMinutes = $calcService->calculateWorkingMinutes($attendance->check_in_at, $now, $totalBreakMinutes, $policy);
         $allowanceData = $calcService->evaluateRegularAllowance($workingMinutes, $policy);
 
         $attendance->update([
@@ -754,7 +754,7 @@ class MyAttendance extends Page
         );
 
         $calcService = app(AttendanceCalculationService::class);
-        $otMinutes = $calcService->calculateOvertimeMinutes($overtime->check_in_at, $now);
+        $otMinutes = $calcService->calculateOvertimeMinutes($overtime->check_in_at, $now, $policy);
         $allowanceData = $calcService->evaluateOvertimeAllowance($otMinutes, $policy);
 
         $overtime->update([

@@ -93,6 +93,31 @@ class AttendanceServicesTest extends TestCase
         $this->assertEquals(45, $breakMinutes);
     }
 
+    public function test_attendance_and_overtime_calculation_caps_checkout_to_policy_end_times()
+    {
+        $policy = new AttendanceSetting([
+            'regular_check_out_end' => '17:00:00',
+            'overtime_check_out_end' => '22:00:00',
+        ]);
+
+        // Regular: Check in 08:00, Check out 18:00 -> Capped at 17:00 (9 hours = 540 minutes, NOT 10 hours = 600 minutes)
+        $regularIn = Carbon::parse('2026-09-22 08:00:00');
+        $regularOut = Carbon::parse('2026-09-22 18:00:00');
+        $workingMinutes = $this->calcService->calculateWorkingMinutes($regularIn, $regularOut, 0, $policy);
+        $this->assertEquals(540, $workingMinutes); // 17:00 - 08:00 = 9h = 540m
+
+        // Regular: Check in 08:00, Check out 16:30 -> Not capped (8.5h = 510 minutes)
+        $regularOutEarly = Carbon::parse('2026-09-22 16:30:00');
+        $workingMinutesEarly = $this->calcService->calculateWorkingMinutes($regularIn, $regularOutEarly, 0, $policy);
+        $this->assertEquals(510, $workingMinutesEarly);
+
+        // Overtime: Check in 18:00, Check out 23:30 -> Capped at 22:00 (4 hours = 240 minutes, NOT 5.5h = 330 minutes)
+        $otIn = Carbon::parse('2026-09-22 18:00:00');
+        $otOut = Carbon::parse('2026-09-22 23:30:00');
+        $otMinutes = $this->calcService->calculateOvertimeMinutes($otIn, $otOut, $policy);
+        $this->assertEquals(240, $otMinutes); // 22:00 - 18:00 = 4h = 240m
+    }
+
     public function test_policy_service_validates_pause_and_resume_transitions()
     {
         $office = Office::create([

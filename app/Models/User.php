@@ -91,6 +91,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(GithubCommit::class);
     }
 
+    public function allowancePeriodStaff(): HasMany
+    {
+        return $this->hasMany(AllowancePeriodStaff::class);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return true; // Let spatie permissions handle specific resource access

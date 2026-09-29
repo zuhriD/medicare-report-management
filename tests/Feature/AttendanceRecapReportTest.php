@@ -27,10 +27,13 @@ class AttendanceRecapReportTest extends TestCase
             'is_active' => true,
         ]);
 
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
         $this->user = User::factory()->create([
             'office_id' => $this->office->id,
             'name' => 'Admin Test',
         ]);
+        $this->user->assignRole('super_admin');
     }
 
     public function test_guest_cannot_access_export_endpoint()
