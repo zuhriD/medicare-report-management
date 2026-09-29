@@ -134,11 +134,11 @@ class OvertimeMonitoringResource extends Resource
             try {
                 $in = Carbon::parse($checkIn);
                 $out = Carbon::parse($checkOut);
+                $policy = $record?->attendance?->attendanceSetting ?? AttendanceSetting::active()->first();
                 $service = app(AttendanceCalculationService::class);
-                $otMinutes = $service->calculateOvertimeMinutes($in, $out);
+                $otMinutes = $service->calculateOvertimeMinutes($in, $out, $policy);
                 $set('overtime_minutes', $otMinutes);
 
-                $policy = $record?->attendance?->attendanceSetting ?? AttendanceSetting::active()->first();
                 if ($policy) {
                     $eval = $service->evaluateOvertimeAllowance($otMinutes, $policy);
                     $set('allowance_eligible', $eval['allowance_eligible']);

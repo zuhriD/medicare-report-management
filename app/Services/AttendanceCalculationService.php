@@ -10,10 +10,24 @@ class AttendanceCalculationService
     /**
      * Calculate working duration in full minutes between check-in and check-out,
      * deducting total paused/break minutes.
+     * If check-out exceeds regular_check_out_end from policy, it is capped at regular_check_out_end.
      */
-    public function calculateWorkingMinutes(Carbon $checkInAt, Carbon $checkOutAt, int $totalBreakMinutes = 0): int
-    {
-        $diffSeconds = $checkOutAt->getTimestamp() - $checkInAt->getTimestamp();
+    public function calculateWorkingMinutes(
+        Carbon $checkInAt,
+        Carbon $checkOutAt,
+        int $totalBreakMinutes = 0,
+        ?AttendanceSetting $policy = null
+    ): int {
+        $effectiveCheckOutAt = $checkOutAt->copy();
+
+        if ($policy && !empty($policy->regular_check_out_end)) {
+            $cutoffEnd = Carbon::parse($checkOutAt->format('Y-m-d') . ' ' . $policy->regular_check_out_end, $checkOutAt->timezone);
+            if ($effectiveCheckOutAt->gt($cutoffEnd)) {
+                $effectiveCheckOutAt = $cutoffEnd;
+            }
+        }
+
+        $diffSeconds = $effectiveCheckOutAt->getTimestamp() - $checkInAt->getTimestamp();
         if ($diffSeconds <= 0) {
             return 0;
         }
@@ -54,10 +68,23 @@ class AttendanceCalculationService
 
     /**
      * Calculate overtime duration in full minutes between overtime check-in and check-out.
+     * If check-out exceeds overtime_check_out_end from policy, it is capped at overtime_check_out_end.
      */
-    public function calculateOvertimeMinutes(Carbon $checkInAt, Carbon $checkOutAt): int
-    {
-        $diffSeconds = $checkOutAt->getTimestamp() - $checkInAt->getTimestamp();
+    public function calculateOvertimeMinutes(
+        Carbon $checkInAt,
+        Carbon $checkOutAt,
+        ?AttendanceSetting $policy = null
+    ): int {
+        $effectiveCheckOutAt = $checkOutAt->copy();
+
+        if ($policy && !empty($policy->overtime_check_out_end)) {
+            $cutoffEnd = Carbon::parse($checkOutAt->format('Y-m-d') . ' ' . $policy->overtime_check_out_end, $checkOutAt->timezone);
+            if ($effectiveCheckOutAt->gt($cutoffEnd)) {
+                $effectiveCheckOutAt = $cutoffEnd;
+            }
+        }
+
+        $diffSeconds = $effectiveCheckOutAt->getTimestamp() - $checkInAt->getTimestamp();
         if ($diffSeconds <= 0) {
             return 0;
         }

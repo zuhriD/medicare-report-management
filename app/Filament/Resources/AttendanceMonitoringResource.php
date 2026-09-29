@@ -136,11 +136,11 @@ class AttendanceMonitoringResource extends Resource
                 $in = Carbon::parse($checkIn);
                 $out = Carbon::parse($checkOut);
                 $totalBreakMinutes = $record ? $record->totalBreakMinutes() : 0;
+                $policy = $record?->attendanceSetting ?? AttendanceSetting::active()->first();
                 $service = app(AttendanceCalculationService::class);
-                $workingMinutes = $service->calculateWorkingMinutes($in, $out, $totalBreakMinutes);
+                $workingMinutes = $service->calculateWorkingMinutes($in, $out, $totalBreakMinutes, $policy);
                 $set('working_minutes', $workingMinutes);
 
-                $policy = $record?->attendanceSetting ?? AttendanceSetting::active()->first();
                 if ($policy) {
                     $eval = $service->evaluateRegularAllowance($workingMinutes, $policy);
                     $set('allowance_eligible', $eval['allowance_eligible']);

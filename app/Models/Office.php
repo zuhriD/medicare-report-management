@@ -61,6 +61,11 @@ class Office extends Model
         return $this->hasMany(Holiday::class);
     }
 
+    public function allowancePeriods(): HasMany
+    {
+        return $this->hasMany(AllowancePeriod::class);
+    }
+
     /**
      * Get the active attendance setting/policy for a given date.
      */
