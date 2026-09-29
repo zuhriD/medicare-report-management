@@ -118,6 +118,44 @@ class AttendanceServicesTest extends TestCase
         $this->assertEquals(240, $otMinutes); // 22:00 - 18:00 = 4h = 240m
     }
 
+    public function test_attendance_calculation_handles_office_timezone_differences_correctly()
+    {
+        $office = Office::create([
+            'name' => 'Jakarta Office',
+            'latitude' => -6.2088,
+            'longitude' => 106.8456,
+            'attendance_radius_meter' => 150,
+            'timezone' => 'Asia/Jakarta',
+            'is_active' => true,
+        ]);
+
+        $policy = AttendanceSetting::create([
+            'office_id' => $office->id,
+            'regular_check_in_start' => '08:00:00',
+            'regular_check_out_end' => '17:00:00',
+            'minimum_regular_minutes' => 360,
+            'regular_allowance_amount' => 70000.00,
+            'overtime_check_in_start' => '18:00:00',
+            'overtime_check_out_end' => '22:00:00',
+            'minimum_overtime_minutes' => 120,
+            'overtime_allowance_amount' => 35000.00,
+            'effective_from' => '2026-01-01',
+            'is_active' => true,
+        ]);
+
+        // Jakarta staff: check-in 10:56:15 WIB, check-out 16:57:25 WIB
+        // Even if Carbon timestamps are created in UTC (03:56:15 UTC & 09:57:25 UTC) or Asia/Kuala_Lumpur (11:56:15 & 17:57:25)
+        $checkInUTC = Carbon::parse('2026-09-29 03:56:15', 'UTC');
+        $checkOutUTC = Carbon::parse('2026-09-29 09:57:25', 'UTC');
+
+        $workingMinutes = $this->calcService->calculateWorkingMinutes($checkInUTC, $checkOutUTC, 0, $policy);
+        $this->assertEquals(361, $workingMinutes); // 6h 1m = 361 minutes, NOT capped to 303 minutes
+
+        $allowance = $this->calcService->evaluateRegularAllowance($workingMinutes, $policy);
+        $this->assertTrue($allowance['allowance_eligible']);
+        $this->assertEquals(70000.00, $allowance['allowance_amount']);
+    }
+
     public function test_policy_service_validates_pause_and_resume_transitions()
     {
         $office = Office::create([
