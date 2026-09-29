@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/attendance-recap/export', [AttendanceRecapExportController::class, 'export'])->name('attendance-recap.export');
     Route::get('/reports/daily-attendance-audit/export', [DailyAttendanceAuditExportController::class, 'export'])->name('daily-attendance-audit.export');
     Route::get('/leave-requests/{leaveRequest}/pdf', [LeaveRequestExportController::class, 'exportPdf'])->name('leave-requests.pdf');
+    Route::get('/allowance-periods/{allowancePeriod}/export', [\App\Http\Controllers\AllowancePeriodExportController::class, 'export'])->name('allowance-periods.export');
 });
 
 
