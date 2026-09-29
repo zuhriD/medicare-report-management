@@ -21,8 +21,10 @@ class AttendanceCalculationService
         $effectiveCheckOutAt = $checkOutAt->copy();
 
         if ($policy && !empty($policy->regular_check_out_end)) {
-            $cutoffEnd = Carbon::parse($checkOutAt->format('Y-m-d') . ' ' . $policy->regular_check_out_end, $checkOutAt->timezone);
-            if ($effectiveCheckOutAt->gt($cutoffEnd)) {
+            $tz = $policy->office?->timezone ?? $checkOutAt->timezone;
+            $officeCheckOutAt = $checkOutAt->copy()->setTimezone($tz);
+            $cutoffEnd = Carbon::parse($officeCheckOutAt->format('Y-m-d') . ' ' . $policy->regular_check_out_end, $tz);
+            if ($officeCheckOutAt->gt($cutoffEnd)) {
                 $effectiveCheckOutAt = $cutoffEnd;
             }
         }
@@ -78,8 +80,10 @@ class AttendanceCalculationService
         $effectiveCheckOutAt = $checkOutAt->copy();
 
         if ($policy && !empty($policy->overtime_check_out_end)) {
-            $cutoffEnd = Carbon::parse($checkOutAt->format('Y-m-d') . ' ' . $policy->overtime_check_out_end, $checkOutAt->timezone);
-            if ($effectiveCheckOutAt->gt($cutoffEnd)) {
+            $tz = $policy->office?->timezone ?? $checkOutAt->timezone;
+            $officeCheckOutAt = $checkOutAt->copy()->setTimezone($tz);
+            $cutoffEnd = Carbon::parse($officeCheckOutAt->format('Y-m-d') . ' ' . $policy->overtime_check_out_end, $tz);
+            if ($officeCheckOutAt->gt($cutoffEnd)) {
                 $effectiveCheckOutAt = $cutoffEnd;
             }
         }
