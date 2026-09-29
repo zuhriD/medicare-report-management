@@ -22,7 +22,7 @@ class CreateAllowancePeriod extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        $staffIds = $data['selected_staff_ids'] ?? [];
+        $staffIds = array_values(array_filter(array_map('intval', (array) ($data['selected_staff_ids'] ?? []))));
         unset($data['selected_staff_ids']);
 
         /** @var AllowancePeriod $period */

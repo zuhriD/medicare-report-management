@@ -65,7 +65,7 @@ class AllowancePeriodResource extends Resource
         }
 
         $user = auth()->user();
-        return $user ? $user->hasRole(['admin', 'super_admin', 'Admin', 'Super Admin']) : false;
+        return $user ? $user->hasRole(['hr', 'HR', 'admin', 'super_admin', 'Admin', 'Super Admin', 'lead', 'Lead']) : false;
     }
 
     public static function form(Form $form): Form
@@ -89,16 +89,13 @@ class AllowancePeriodResource extends Resource
                             ->preload()
                             ->placeholder('Semua Kantor / Multi Office')
                             ->live()
-                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                $mode = $get('staff_selection_mode') ?? 'by_office';
-                                if ($mode === 'by_office') {
-                                    $query = User::query()
-                                        ->whereHas('roles', fn ($q) => $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']));
-                                    if ($state) {
-                                        $query->where('office_id', $state);
-                                    }
-                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                $query = User::query()
+                                    ->whereHas('roles', fn ($q) => $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']));
+                                if ($state) {
+                                    $query->where('office_id', $state);
                                 }
+                                $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
                             }),
 
                         Select::make('status')
@@ -133,39 +130,12 @@ class AllowancePeriodResource extends Resource
                     ->columns(2),
 
                 Section::make('Pemilihan Staff')
-                    ->description('Pilih staff yang akan dimasukkan ke dalam periode pembayaran ini. Gunakan mode otomatis atau tombol Select All untuk memilih puluhan staff dalam satu klik.')
+                    ->description('Pilih staff yang akan dimasukkan ke dalam periode ini. Gunakan tombol "Select all" / "Deselect all" atau centang/uncentang secara bebas sesuai kebutuhan.')
                     ->schema([
-                        \Filament\Forms\Components\Radio::make('staff_selection_mode')
-                            ->label('Metode Pemilihan Cepat')
-                            ->options([
-                                'by_office' => 'Semua Staff di Kantor Terpilih (Otomatis Pilih Semua)',
-                                'all' => 'Semua Staff Seluruh Kantor (All Active Staff)',
-                                'custom' => 'Pilih Manual / Multi-Select Tertentu',
-                            ])
-                            ->default('by_office')
-                            ->inline()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                $officeId = $get('office_id');
-                                $query = User::query()
-                                    ->whereHas('roles', fn ($q) => $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']));
-
-                                if ($state === 'by_office') {
-                                    if ($officeId) {
-                                        $query->where('office_id', $officeId);
-                                    }
-                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
-                                } elseif ($state === 'all') {
-                                    $set('selected_staff_ids', $query->pluck('id')->map(fn ($id) => (string) $id)->toArray());
-                                }
-                            })
-                            ->columnSpanFull(),
-
                         \Filament\Forms\Components\CheckboxList::make('selected_staff_ids')
                             ->label('Daftar Staff Terpilih')
                             ->options(function (Get $get) {
                                 $officeId = $get('office_id');
-                                $mode = $get('staff_selection_mode');
                                 $query = User::query()
                                     ->whereHas('roles', function ($q) {
                                         $q->whereIn('name', ['team_member', 'Team Member', 'team-member', 'staff', 'Staff']);
@@ -173,7 +143,7 @@ class AllowancePeriodResource extends Resource
                                     ->with('office')
                                     ->orderBy('name');
 
-                                if ($mode === 'by_office' && $officeId) {
+                                if ($officeId) {
                                     $query->where('office_id', $officeId);
                                 }
 
@@ -182,12 +152,16 @@ class AllowancePeriodResource extends Resource
                                     return [$user->id => "{$user->name}{$officeName} — {$user->email}"];
                                 });
                             })
+                            ->live()
                             ->searchable()
                             ->bulkToggleable()
                             ->columns(2)
                             ->gridDirection('row')
                             ->required()
-                            ->helperText('Klik "Select all" di atas untuk memilih seluruh staff sekaligus, atau gunakan pencarian untuk memfilter nama.')
+                            ->helperText(function (Get $get) {
+                                $selected = count((array) ($get('selected_staff_ids') ?? []));
+                                return "Jumlah staff yang akan digenerate: {$selected} orang. Anda dapat mencentang atau meng-uncentang staff secara bebas.";
+                            })
                             ->columnSpanFull(),
                     ])
                     ->hiddenOn('edit'),
