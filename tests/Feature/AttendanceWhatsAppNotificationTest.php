@@ -83,12 +83,12 @@ class AttendanceWhatsAppNotificationTest extends TestCase
         $service = app(AttendanceWhatsAppNotificationService::class);
         $message = $service->formatCheckIn($att, 'Siap bertugas', 10.5, $photoUrl);
 
-        $this->assertStringContainsString('LAPORAN ABSENSI MASUK', $message);
+        $this->assertStringContainsString('ATTENDANCE CHECK-IN REPORT', $message);
         $this->assertStringContainsString('John Doe', $message);
         $this->assertStringContainsString('Kuala Lumpur HQ', $message);
         $this->assertStringContainsString('Siap bertugas', $message);
-        $this->assertStringContainsString('Akurasi ±11m', $message);
-        $this->assertStringContainsString('📸 *Foto Selfie:* ' . $photoUrl, $message);
+        $this->assertStringContainsString('Accuracy ±11m', $message);
+        $this->assertStringContainsString('*Selfie Photo:* ' . $photoUrl, $message);
     }
 
     public function test_service_resolves_static_group_link()
