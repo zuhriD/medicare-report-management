@@ -76,6 +76,32 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Office::class);
     }
 
+    public function offices(): BelongsToMany
+    {
+        return $this->belongsToMany(Office::class)->withTimestamps();
+    }
+
+    /**
+     * Get all assigned offices for this user (including primary office and assigned offices).
+     *
+     * @return \Illuminate\Support\Collection<int, Office>
+     */
+    public function getAllAssignedOffices()
+    {
+        $assigned = $this->offices()->where('is_active', true)->get();
+
+        if ($this->office && $this->office->is_active && !$assigned->contains('id', $this->office_id)) {
+            $assigned->prepend($this->office);
+        }
+
+        if ($assigned->isEmpty() && $this->office) {
+            $assigned->push($this->office);
+        }
+
+        return $assigned;
+    }
+
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);

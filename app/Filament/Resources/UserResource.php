@@ -51,9 +51,17 @@ class UserResource extends Resource
                     ->relationship('office', 'name')
                     ->searchable()
                     ->preload()
-                    ->label('Assigned Office')
+                    ->label('Primary Office')
                     ->nullable()
-                    ->helperText('Assign staff to their primary work location for geofencing and attendance policy.'),
+                    ->helperText('Kantor utama tempat staff ini terdaftar secara default.'),
+                Select::make('offices')
+                    ->relationship('offices', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->label('Assigned Multi-Branch Offices')
+                    ->helperText('Kantor-kantor cabang yang diizinkan untuk staff ini melakukan absensi reguler maupun lembur (OT).')
+                    ->nullable(),
                 Select::make('sections')
                     ->relationship('sections', 'name')
                     ->multiple()
@@ -90,11 +98,17 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('office.name')
-                    ->label('Office')
+                    ->label('Primary Office')
                     ->badge()
                     ->color('info')
                     ->placeholder('Not assigned')
                     ->sortable()
+                    ->toggleable(),
+                TextColumn::make('offices.name')
+                    ->label('Assigned Branches')
+                    ->badge()
+                    ->color('gray')
+                    ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('github_username')
                     ->label('GitHub')

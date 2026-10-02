@@ -205,8 +205,9 @@ class AttendanceWhatsAppNotificationService
     {
         $attendance = $overtime->attendance;
         $user = $attendance?->user;
-        $office = $attendance?->office;
-        $tz = $office?->timezone ?? config('app.timezone');
+        $homeOffice = $attendance?->office;
+        $otOffice = $overtime->actual_office ?? $homeOffice;
+        $tz = $otOffice?->timezone ?? $homeOffice?->timezone ?? config('app.timezone');
         $timeStr = $overtime->check_in_at ? $overtime->check_in_at->setTimezone($tz)->format('H:i:s') : Carbon::now($tz)->format('H:i:s');
         $photoLink = $this->resolvePhotoUrl($photoUrl, $overtime->check_in_selfie);
 
@@ -215,10 +216,17 @@ class AttendanceWhatsAppNotificationService
             '*OVERTIME CHECK-IN NOTICE*',
             '━━━━━━━━━━━━━━━━━━━━━',
             '*Name:* ' . ($user?->name ?? 'Staff'),
-            '*Office:* ' . ($office?->name ?? 'Office'),
-            '*Start Time:* ' . $timeStr . ' (' . $tz . ')',
-            '*Location Status:* At Overtime Location',
         ];
+
+        if ($otOffice && $homeOffice && $otOffice->id !== $homeOffice->id) {
+            $lines[] = '*Overtime Office:* ' . $otOffice->name . ' (Lembur Cabang)';
+            $lines[] = '*Home Office:* ' . $homeOffice->name;
+        } else {
+            $lines[] = '*Office:* ' . ($otOffice?->name ?? $homeOffice?->name ?? 'Office');
+        }
+
+        $lines[] = '*Start Time:* ' . $timeStr . ' (' . $tz . ')';
+        $lines[] = '*Location Status:* At Overtime Location';
 
         if ($photoLink) {
             $lines[] = '*Selfie Photo:* ' . $photoLink;
@@ -241,8 +249,9 @@ class AttendanceWhatsAppNotificationService
     {
         $attendance = $overtime->attendance;
         $user = $attendance?->user;
-        $office = $attendance?->office;
-        $tz = $office?->timezone ?? config('app.timezone');
+        $homeOffice = $attendance?->office;
+        $otOffice = $overtime->actual_office ?? $homeOffice;
+        $tz = $otOffice?->timezone ?? $homeOffice?->timezone ?? config('app.timezone');
         $inStr = $overtime->check_in_at ? $overtime->check_in_at->setTimezone($tz)->format('H:i:s') : '—';
         $outStr = $overtime->check_out_at ? $overtime->check_out_at->setTimezone($tz)->format('H:i:s') : Carbon::now($tz)->format('H:i:s');
 
@@ -256,12 +265,19 @@ class AttendanceWhatsAppNotificationService
             '*OVERTIME CHECK-OUT REPORT*',
             '━━━━━━━━━━━━━━━━━━━━━',
             '*Name:* ' . ($user?->name ?? 'Staff'),
-            '*Office:* ' . ($office?->name ?? 'Office'),
-            '*Start Time:* ' . $inStr,
-            '*End Time:* ' . $outStr . ' (' . $tz . ')',
-            '*Overtime Duration:* ' . $otDuration,
-            '*Overtime Allowance:* ' . $allowanceStatus,
         ];
+
+        if ($otOffice && $homeOffice && $otOffice->id !== $homeOffice->id) {
+            $lines[] = '*Overtime Office:* ' . $otOffice->name . ' (Lembur Cabang)';
+            $lines[] = '*Home Office:* ' . $homeOffice->name;
+        } else {
+            $lines[] = '*Office:* ' . ($otOffice?->name ?? $homeOffice?->name ?? 'Office');
+        }
+
+        $lines[] = '*Start Time:* ' . $inStr;
+        $lines[] = '*End Time:* ' . $outStr . ' (' . $tz . ')';
+        $lines[] = '*Overtime Duration:* ' . $otDuration;
+        $lines[] = '*Overtime Allowance:* ' . $allowanceStatus;
 
         if ($photoLink) {
             $lines[] = '*Selfie Photo:* ' . $photoLink;
