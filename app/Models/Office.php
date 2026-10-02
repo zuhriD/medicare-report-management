@@ -17,6 +17,7 @@ class Office extends Model
         'latitude',
         'longitude',
         'attendance_radius_meter',
+        'is_geofence_enabled',
         'timezone',
         'is_active',
     ];
@@ -27,6 +28,7 @@ class Office extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'attendance_radius_meter' => 'integer',
+            'is_geofence_enabled' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -39,6 +41,16 @@ class Office extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function assignedUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
+
+    public function overtimes(): HasMany
+    {
+        return $this->hasMany(Overtime::class);
     }
 
     public function attendanceSettings(): HasMany

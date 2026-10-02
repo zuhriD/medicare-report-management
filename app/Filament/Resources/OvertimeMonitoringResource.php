@@ -62,17 +62,24 @@ class OvertimeMonitoringResource extends Resource
             ->schema([
                 Section::make('Staff & Office Information')
                     ->schema([
-                        Grid::make(3)->schema([
+                        Grid::make(4)->schema([
                             TextInput::make('staff_name')
                                 ->label('Staff Name')
                                 ->formatStateUsing(fn (?Overtime $record) => $record?->attendance?->user?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
-                            TextInput::make('office_name')
-                                ->label('Office')
+                            TextInput::make('home_office')
+                                ->label('Home Office')
                                 ->formatStateUsing(fn (?Overtime $record) => $record?->attendance?->office?->name ?? '—')
                                 ->disabled()
                                 ->dehydrated(false),
+                            \Filament\Forms\Components\Select::make('office_id')
+                                ->relationship('office', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->label('Overtime Office')
+                                ->placeholder(fn (?Overtime $record) => $record?->attendance?->office?->name ?? 'Select Office')
+                                ->helperText('Lokasi cabang tempat lembur dilaksanakan.'),
                             DatePicker::make('overtime_date')
                                 ->label('Overtime Date')
                                 ->required(),
@@ -259,20 +266,27 @@ class OvertimeMonitoringResource extends Resource
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('attendance.office.name')
-                    ->label('Office')
+                    ->label('Home Office')
                     ->badge()
                     ->color('info')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('office.name')
+                    ->label('OT Office')
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder(fn ($record) => $record->attendance?->office?->name ?? '—')
                     ->sortable(),
                 TextColumn::make('check_in_at')
                     ->label('OT In')
                     ->time('H:i')
-                    ->timezone(fn ($record) => $record->attendance?->office?->timezone ?? config('app.timezone'))
+                    ->timezone(fn ($record) => $record->office?->timezone ?? $record->attendance?->office?->timezone ?? config('app.timezone'))
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('check_out_at')
                     ->label('OT Out')
                     ->time('H:i')
-                    ->timezone(fn ($record) => $record->attendance?->office?->timezone ?? config('app.timezone'))
+                    ->timezone(fn ($record) => $record->office?->timezone ?? $record->attendance?->office?->timezone ?? config('app.timezone'))
                     ->placeholder('In Progress')
                     ->sortable(),
                 TextColumn::make('overtime_minutes')
@@ -311,9 +325,12 @@ class OvertimeMonitoringResource extends Resource
                             ->when($data['from'], fn ($q, $date) => $q->whereDate('overtime_date', '>=', $date))
                             ->when($data['until'], fn ($q, $date) => $q->whereDate('overtime_date', '<=', $date));
                     }),
-                SelectFilter::make('office')
+                SelectFilter::make('office_id')
+                    ->relationship('office', 'name')
+                    ->label('Filter OT Office'),
+                SelectFilter::make('home_office')
                     ->relationship('attendance.office', 'name')
-                    ->label('Filter Office'),
+                    ->label('Filter Home Office'),
                 SelectFilter::make('user')
                     ->relationship('attendance.user', 'name')
                     ->searchable()

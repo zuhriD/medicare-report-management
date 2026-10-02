@@ -53,6 +53,19 @@ class GeoLocationService
      */
     public function validateOfficeGeofence(Office $office, ?float $userLat, ?float $userLon): array
     {
+        if (isset($office->is_geofence_enabled) && !$office->is_geofence_enabled) {
+            $dist = ($userLat !== null && $userLon !== null && $office->latitude !== null && $office->longitude !== null)
+                ? $this->calculateDistance($userLat, $userLon, $office->latitude, $office->longitude)
+                : 0.0;
+
+            return [
+                'is_valid' => true,
+                'distance_meters' => $dist,
+                'allowed_radius_meters' => $office->attendance_radius_meter ?? 0,
+                'message' => 'Geofencing check is disabled for this office.',
+            ];
+        }
+
         if ($userLat === null || $userLon === null) {
             return [
                 'is_valid' => false,

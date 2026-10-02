@@ -85,6 +85,10 @@ class OfficeResource extends Resource
                                     ->label('Office is Active')
                                     ->default(true)
                                     ->helperText('Only active offices allow staff to record attendance.'),
+                                Toggle::make('is_geofence_enabled')
+                                    ->label('Enable Geolocation / Radius Check')
+                                    ->default(true)
+                                    ->helperText('If disabled, staff can check in without radius distance restrictions (useful during GPS outages).'),
                             ]),
                     ]),
             ]);

@@ -12,6 +12,7 @@ class Overtime extends Model
 
     protected $fillable = [
         'attendance_id',
+        'office_id',
         'overtime_date',
         'check_in_at',
         'check_in_latitude',
@@ -50,6 +51,16 @@ class Overtime extends Model
     public function attendance(): BelongsTo
     {
         return $this->belongsTo(Attendance::class);
+    }
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
+    public function getActualOfficeAttribute(): ?Office
+    {
+        return $this->office ?? $this->attendance?->office;
     }
 
     public function isCheckedIn(): bool

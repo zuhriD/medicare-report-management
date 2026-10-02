@@ -418,6 +418,15 @@
                     {{-- Regular Timeline Grid --}}
                     <div class="space-y-2.5 p-3.5 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/50 text-xs">
                         <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium">Kantor Bertugas:</span>
+                            <span class="font-black text-gray-900 dark:text-white flex items-center gap-1">
+                                {{ $this->office?->name ?? '—' }}
+                                @if ($this->office && $this->user?->office_id && $this->office->id !== $this->user->office_id)
+                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold">Cabang</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Jam Masuk:</span>
                             <span class="font-black text-gray-900 dark:text-white">
                                 {{ $this->todayAttendance?->check_in_at ? $this->todayAttendance->check_in_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
@@ -487,6 +496,28 @@
                 {{-- Action Buttons --}}
                 <div class="pt-2 space-y-2">
                     @if (!$this->todayAttendance)
+                    @if ($this->assignedOffices->count() > 1)
+                    <div class="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl space-y-1.5 mb-2 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                                <x-heroicon-m-building-office-2 class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                Lokasi Kantor Hari Ini:
+                            </label>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold">Multi-Cabang</span>
+                        </div>
+                        <select wire:model.live="selectedOfficeId" class="w-full text-xs rounded-lg border-blue-300 dark:border-blue-700 dark:bg-gray-900 dark:text-white py-2 px-3 font-semibold focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-inner">
+                            @foreach ($this->assignedOffices as $off)
+                            <option value="{{ $off->id }}">
+                                {{ $off->name }} {{ $off->id === $this->user?->office_id ? '(Kantor Utama)' : '(Cabang)' }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <div class="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 pt-0.5 px-0.5">
+                            <span>Radius GPS: {{ $this->office?->attendance_radius_meter ?? 100 }}m</span>
+                            <span>Zona: {{ $this->office?->timezone ?? config('app.timezone') }}</span>
+                        </div>
+                    </div>
+                    @endif
                     <button
                         type="button"
                         wire:click="doRegularCheckIn"
@@ -610,15 +641,24 @@
                     {{-- OT Timeline Grid --}}
                     <div class="space-y-2.5 p-3.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/30 text-xs">
                         <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium">Lokasi Lembur:</span>
+                            <span class="font-black text-gray-900 dark:text-white flex items-center gap-1">
+                                {{ $this->overtimeOffice?->name ?? '—' }}
+                                @if ($this->overtimeOffice && $this->todayAttendance && $this->overtimeOffice->id !== $this->todayAttendance->office_id)
+                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold">Lembur Cabang</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Mulai Lembur:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayOvertime?->check_in_at ? $this->todayOvertime->check_in_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
+                                {{ $this->todayOvertime?->check_in_at ? $this->todayOvertime->check_in_at->setTimezone($this->overtimeOffice?->timezone ?? $this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
                             </span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 dark:text-gray-400 font-medium">Selesai Lembur:</span>
                             <span class="font-black text-gray-900 dark:text-white">
-                                {{ $this->todayOvertime?->check_out_at ? $this->todayOvertime->check_out_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : ($this->todayOvertime ? 'Sedang Berjalan' : '—') }}
+                                {{ $this->todayOvertime?->check_out_at ? $this->todayOvertime->check_out_at->setTimezone($this->overtimeOffice?->timezone ?? $this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : ($this->todayOvertime ? 'Sedang Berjalan' : '—') }}
                             </span>
                         </div>
                         <div class="flex justify-between items-center pt-2 border-t border-amber-200/60 dark:border-amber-900/40">
@@ -653,6 +693,20 @@
                 <div class="pt-2">
                     @if ($isOtEligible)
                     @if (!$this->todayOvertime)
+                    @if ($this->assignedOffices->count() > 1)
+                    <div class="mb-3 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1">
+                        <label class="block text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                            Pilih Lokasi Kantor Lembur:
+                        </label>
+                        <select wire:model.live="selectedOvertimeOfficeId" class="w-full text-xs rounded-lg border-amber-300 dark:border-amber-700 dark:bg-gray-900 dark:text-white py-1.5 px-2.5 font-semibold focus:ring-amber-500 focus:border-amber-500 cursor-pointer">
+                            @foreach ($this->assignedOffices as $off)
+                            <option value="{{ $off->id }}">
+                                {{ $off->name }} {{ $off->id === $this->todayAttendance?->office_id ? '(Sama dengan Reguler)' : '(Lembur Cabang)' }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
                     <button
                         type="button"
                         wire:click="doOvertimeCheckIn"
