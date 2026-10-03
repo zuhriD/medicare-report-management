@@ -52,30 +52,30 @@ class AttendanceWhatsAppNotificationService
         $timeStr = $attendance->check_in_at ? $attendance->check_in_at->setTimezone($tz)->format('H:i:s') : Carbon::now($tz)->format('H:i:s');
         $dateStr = $attendance->attendance_date ? Carbon::parse($attendance->attendance_date)->format('d M Y') : Carbon::now($tz)->format('d M Y');
 
-        $gpsInfo = 'Lokasi Terverifikasi (Di Kantor)';
+        $gpsInfo = 'Verified Location (At Office)';
         if ($accuracy !== null) {
-            $gpsInfo .= ' [Akurasi ±' . round($accuracy) . 'm]';
+            $gpsInfo .= ' [Accuracy ±' . round($accuracy) . 'm]';
         }
 
         $photoLink = $this->resolvePhotoUrl($photoUrl, $attendance->check_in_selfie);
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '📍 *LAPORAN ABSENSI MASUK*',
+            '*ATTENDANCE CHECK-IN REPORT*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '📅 *Tanggal:* ' . $dateStr,
-            '🕒 *Waktu Masuk:* ' . $timeStr . ' (' . $tz . ')',
-            '📌 *Status GPS:* ' . $gpsInfo,
+            '*Name:* ' . ($user?->name ?? 'Staff'),
+            '*Office:* ' . ($office?->name ?? 'Office'),
+            '*Date:* ' . $dateStr,
+            '*Check-In Time:* ' . $timeStr . ' (' . $tz . ')',
+            '*Location Status:* ' . $gpsInfo,
         ];
 
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         if ($notes) {
-            $lines[] = '💬 *Catatan:* ' . $notes;
+            $lines[] = '*Notes:* ' . $notes;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';
@@ -97,24 +97,24 @@ class AttendanceWhatsAppNotificationService
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '⏸️ *IZIN KELUAR KANTOR (JEDA)*',
+            '*BREAK / OUT OF OFFICE NOTICE*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '🕒 *Waktu Keluar:* ' . $timeStr . ' (' . $tz . ')',
-            '📝 *Alasan Izin:* ' . ($break->reason ?: 'Istirahat / Keperluan'),
+            '*Name:* ' . ($user?->name ?? 'Staff'),
+            '*Office:* ' . ($office?->name ?? 'Office'),
+            '*Break Time:* ' . $timeStr . ' (' . $tz . ')',
+            '*Reason:* ' . ($break->reason ?: 'Break / Personal Duty'),
         ];
 
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         if ($break->notes) {
-            $lines[] = '💬 *Catatan:* ' . $break->notes;
+            $lines[] = '*Notes:* ' . $break->notes;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';
-        $lines[] = '_Status absensi dijeda otomatis hingga kembali ke kantor_';
+        $lines[] = '_Attendance status is paused until returning to the office_';
 
         return implode("\n", $lines);
     }
@@ -134,21 +134,21 @@ class AttendanceWhatsAppNotificationService
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '▶️ *KEMBALI KE KANTOR (LANJUT KERJA)*',
+            '*RETURN TO OFFICE REPORT*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '🕒 *Waktu Kembali:* ' . $timeStr . ' (' . $tz . ')',
-            '⏱️ *Durasi Izin/Jeda:* ' . $durationStr,
-            '📌 *Status GPS:* Terverifikasi di Kantor',
+            '*Name:* ' . ($user?->name ?? 'Staff'),
+            '*Office:* ' . ($office?->name ?? 'Office'),
+            '*Return Time:* ' . $timeStr . ' (' . $tz . ')',
+            '*Break Duration:* ' . $durationStr,
+            '*Location Status:* Verified at Office',
         ];
 
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';
-        $lines[] = '_Absensi dilanjutkan kembali_';
+        $lines[] = '_Attendance resumed_';
 
         return implode("\n", $lines);
     }
@@ -168,28 +168,28 @@ class AttendanceWhatsAppNotificationService
         $workingDuration = $calcService->formatMinutesToDuration($attendance->working_minutes ?? 0);
         $breakDuration = $calcService->formatMinutesToDuration($attendance->totalBreakMinutes());
 
-        $allowanceStatus = $attendance->allowance_eligible ? '✅ Memenuhi Syarat' : '❌ Belum Memenuhi Syarat';
+        $allowanceStatus = $attendance->allowance_eligible ? 'Qualified' : 'Not Qualified';
         $photoLink = $this->resolvePhotoUrl($photoUrl, $attendance->check_out_selfie);
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '🏁 *LAPORAN ABSENSI PULANG*',
+            '*ATTENDANCE CHECK-OUT REPORT*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '⏳ *Jam Masuk:* ' . $checkInStr,
-            '🕒 *Jam Pulang:* ' . $checkOutStr . ' (' . $tz . ')',
-            '⏸️ *Total Jeda/Izin:* ' . $breakDuration,
-            '⏱️ *Durasi Kerja Efektif:* ' . $workingDuration,
-            '💰 *Tunjangan Hadir:* ' . $allowanceStatus,
+            '*Name:* ' . ($user?->name ?? 'Staff'),
+            '*Office:* ' . ($office?->name ?? 'Office'),
+            '*Check-In Time:* ' . $checkInStr,
+            '*Check-Out Time:* ' . $checkOutStr . ' (' . $tz . ')',
+            '*Total Break Time:* ' . $breakDuration,
+            '*Effective Working Duration:* ' . $workingDuration,
+            '*Attendance Allowance:* ' . $allowanceStatus,
         ];
 
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         if ($notes) {
-            $lines[] = '💬 *Catatan:* ' . $notes;
+            $lines[] = '*Notes:* ' . $notes;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';
@@ -205,27 +205,35 @@ class AttendanceWhatsAppNotificationService
     {
         $attendance = $overtime->attendance;
         $user = $attendance?->user;
-        $office = $attendance?->office;
-        $tz = $office?->timezone ?? config('app.timezone');
+        $homeOffice = $attendance?->office;
+        $otOffice = $overtime->actual_office ?? $homeOffice;
+        $tz = $otOffice?->timezone ?? $homeOffice?->timezone ?? config('app.timezone');
         $timeStr = $overtime->check_in_at ? $overtime->check_in_at->setTimezone($tz)->format('H:i:s') : Carbon::now($tz)->format('H:i:s');
         $photoLink = $this->resolvePhotoUrl($photoUrl, $overtime->check_in_selfie);
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '🔥 *NOTIFIKASI MULAI LEMBUR (OT)*',
+            '*OVERTIME CHECK-IN NOTICE*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '🕒 *Waktu Mulai:* ' . $timeStr . ' (' . $tz . ')',
-            '📌 *Status GPS:* Di Lokasi Lembur',
+            '*Name:* ' . ($user?->name ?? 'Staff'),
         ];
 
+        if ($otOffice && $homeOffice && $otOffice->id !== $homeOffice->id) {
+            $lines[] = '*Overtime Office:* ' . $otOffice->name . ' (Lembur Cabang)';
+            $lines[] = '*Home Office:* ' . $homeOffice->name;
+        } else {
+            $lines[] = '*Office:* ' . ($otOffice?->name ?? $homeOffice?->name ?? 'Office');
+        }
+
+        $lines[] = '*Start Time:* ' . $timeStr . ' (' . $tz . ')';
+        $lines[] = '*Location Status:* At Overtime Location';
+
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         if ($notes) {
-            $lines[] = '💬 *Catatan Tugas:* ' . $notes;
+            $lines[] = '*Task Notes:* ' . $notes;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';
@@ -241,34 +249,42 @@ class AttendanceWhatsAppNotificationService
     {
         $attendance = $overtime->attendance;
         $user = $attendance?->user;
-        $office = $attendance?->office;
-        $tz = $office?->timezone ?? config('app.timezone');
+        $homeOffice = $attendance?->office;
+        $otOffice = $overtime->actual_office ?? $homeOffice;
+        $tz = $otOffice?->timezone ?? $homeOffice?->timezone ?? config('app.timezone');
         $inStr = $overtime->check_in_at ? $overtime->check_in_at->setTimezone($tz)->format('H:i:s') : '—';
         $outStr = $overtime->check_out_at ? $overtime->check_out_at->setTimezone($tz)->format('H:i:s') : Carbon::now($tz)->format('H:i:s');
 
         $calcService = app(AttendanceCalculationService::class);
         $otDuration = $calcService->formatMinutesToDuration($overtime->overtime_minutes ?? 0);
-        $allowanceStatus = $overtime->allowance_eligible ? '✅ Memenuhi Syarat' : '❌ Belum Memenuhi';
+        $allowanceStatus = $overtime->allowance_eligible ? 'Qualified' : 'Not Qualified';
         $photoLink = $this->resolvePhotoUrl($photoUrl, $overtime->check_out_selfie);
 
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
-            '🔥 *LAPORAN SELESAI LEMBUR (OT)*',
+            '*OVERTIME CHECK-OUT REPORT*',
             '━━━━━━━━━━━━━━━━━━━━━',
-            '👤 *Nama:* ' . ($user?->name ?? 'Staff'),
-            '🏢 *Kantor:* ' . ($office?->name ?? 'Kantor'),
-            '🕒 *Mulai Lembur:* ' . $inStr,
-            '🏁 *Selesai Lembur:* ' . $outStr . ' (' . $tz . ')',
-            '⏱️ *Durasi Lembur:* ' . $otDuration,
-            '💰 *Uang Lembur:* ' . $allowanceStatus,
+            '*Name:* ' . ($user?->name ?? 'Staff'),
         ];
 
+        if ($otOffice && $homeOffice && $otOffice->id !== $homeOffice->id) {
+            $lines[] = '*Overtime Office:* ' . $otOffice->name . ' (Lembur Cabang)';
+            $lines[] = '*Home Office:* ' . $homeOffice->name;
+        } else {
+            $lines[] = '*Office:* ' . ($otOffice?->name ?? $homeOffice?->name ?? 'Office');
+        }
+
+        $lines[] = '*Start Time:* ' . $inStr;
+        $lines[] = '*End Time:* ' . $outStr . ' (' . $tz . ')';
+        $lines[] = '*Overtime Duration:* ' . $otDuration;
+        $lines[] = '*Overtime Allowance:* ' . $allowanceStatus;
+
         if ($photoLink) {
-            $lines[] = '📸 *Foto Selfie:* ' . $photoLink;
+            $lines[] = '*Selfie Photo:* ' . $photoLink;
         }
 
         if ($notes) {
-            $lines[] = '💬 *Catatan Hasil:* ' . $notes;
+            $lines[] = '*Result Notes:* ' . $notes;
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━';

@@ -57,6 +57,9 @@ class StaffAttendanceTest extends TestCase
             'email' => 'john@medicare.com',
             'password' => bcrypt('password'),
         ]);
+
+        \Spatie\Permission\Models\Permission::findOrCreate('page_MyAttendance', 'web');
+        $this->user->givePermissionTo('page_MyAttendance');
     }
 
     public function test_staff_attendance_page_can_be_rendered()
@@ -122,7 +125,7 @@ class StaffAttendanceTest extends TestCase
             'office_id' => $this->office->id,
             'attendance_setting_id' => $this->policy->id,
             'attendance_date' => Carbon::now()->toDateString(),
-            'check_in_at' => Carbon::now()->subHours(7),
+            'check_in_at' => Carbon::now()->subHours(8),
             'check_in_latitude' => 3.1340,
             'check_in_longitude' => 101.6860,
             'check_in_accuracy' => 5.0,

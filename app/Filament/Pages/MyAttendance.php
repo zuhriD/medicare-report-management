@@ -53,9 +53,25 @@ class MyAttendance extends Page
 
     public string $actionType = 'regular_check_in'; // regular_check_in, paused, regular_check_out, ot_check_in, ot_check_out
 
+    // Multi-Office properties
+    public ?int $selectedOfficeId = null;
+    public ?int $selectedOvertimeOfficeId = null;
+
     public function mount(): void
     {
         $this->evaluateCurrentState();
+
+        if (!$this->selectedOfficeId) {
+            $this->selectedOfficeId = $this->todayAttendance?->office_id 
+                ?? $this->user?->office_id 
+                ?? $this->assignedOffices->first()?->id;
+        }
+
+        if (!$this->selectedOvertimeOfficeId) {
+            $this->selectedOvertimeOfficeId = $this->todayOvertime?->office_id 
+                ?? $this->todayAttendance?->office_id 
+                ?? $this->selectedOfficeId;
+        }
     }
 
     /**
@@ -67,11 +83,61 @@ class MyAttendance extends Page
     }
 
     /**
-     * Get the assigned office of the staff.
+     * Get all offices assigned to this staff.
+     */
+    public function getAssignedOfficesProperty()
+    {
+        return $this->user?->getAllAssignedOffices() ?? collect();
+    }
+
+    /**
+     * Get the active/selected office of the staff for regular attendance.
      */
     public function getOfficeProperty(): ?Office
     {
-        return $this->user?->office;
+        if ($this->todayAttendance?->office) {
+            return $this->todayAttendance->office;
+        }
+
+        if ($this->selectedOfficeId) {
+            $found = Office::find($this->selectedOfficeId);
+            if ($found && $found->is_active) {
+                return $found;
+            }
+        }
+
+        return $this->user?->office ?? $this->assignedOffices->first();
+    }
+
+    /**
+     * Get the office where overtime is performed.
+     */
+    public function getOvertimeOfficeProperty(): ?Office
+    {
+        if ($this->todayOvertime?->office) {
+            return $this->todayOvertime->office;
+        }
+
+        if ($this->selectedOvertimeOfficeId) {
+            $found = Office::find($this->selectedOvertimeOfficeId);
+            if ($found && $found->is_active) {
+                return $found;
+            }
+        }
+
+        return $this->todayAttendance?->office ?? $this->office;
+    }
+
+    /**
+     * Get the effective office depending on current action type.
+     */
+    public function getCurrentTargetOfficeProperty(): ?Office
+    {
+        if (in_array($this->actionType, ['ot_check_in', 'ot_check_out'])) {
+            return $this->overtimeOffice;
+        }
+
+        return $this->office;
     }
 
     /**
@@ -79,11 +145,12 @@ class MyAttendance extends Page
      */
     public function getPolicyProperty(): ?AttendanceSetting
     {
-        if (!$this->office) {
+        $target = $this->currentTargetOffice;
+        if (!$target) {
             return null;
         }
 
-        return app(AttendancePolicyService::class)->getActivePolicy($this->office);
+        return app(AttendancePolicyService::class)->getActivePolicy($target);
     }
 
     /**
@@ -91,11 +158,21 @@ class MyAttendance extends Page
      */
     public function getOfficeNowProperty(): Carbon
     {
-        if (!$this->office) {
+        $target = $this->currentTargetOffice;
+        if (!$target) {
             return Carbon::now();
         }
 
-        return app(AttendancePolicyService::class)->getOfficeNow($this->office);
+        return app(AttendancePolicyService::class)->getOfficeNow($target);
+    }
+
+    /**
+     * Get local date for today based on staff's home office timezone or system default.
+     */
+    public function getTodayDateProperty(): string
+    {
+        $tz = $this->user?->office?->timezone ?? config('app.timezone', 'Asia/Jakarta');
+        return Carbon::now($tz)->toDateString();
     }
 
     /**
@@ -103,10 +180,8 @@ class MyAttendance extends Page
      */
     public function getTodayAttendanceProperty(): ?Attendance
     {
-        $todayDate = $this->officeNow->toDateString();
-
         return Attendance::where('user_id', $this->user?->id)
-            ->whereDate('attendance_date', $todayDate)
+            ->whereDate('attendance_date', $this->todayDate)
             ->first();
     }
 
@@ -138,6 +213,29 @@ class MyAttendance extends Page
         }
     }
 
+    public function updatedSelectedOfficeId(): void
+    {
+        $this->refreshGeofence();
+    }
+
+    public function updatedSelectedOvertimeOfficeId(): void
+    {
+        $this->refreshGeofence();
+    }
+
+    public function refreshGeofence(): void
+    {
+        $target = $this->currentTargetOffice;
+        if ($target && $this->latitude !== null && $this->longitude !== null) {
+            $geoService = app(GeoLocationService::class);
+            $validation = $geoService->validateOfficeGeofence($target, $this->latitude, $this->longitude);
+
+            $this->isWithinRadius = $validation['is_valid'];
+            $this->distanceFromOffice = $validation['distance_meters'];
+            $this->geofenceMessage = $validation['message'];
+        }
+    }
+
     /**
      * Update GPS coordinates received from browser client.
      */
@@ -148,14 +246,7 @@ class MyAttendance extends Page
         $this->accuracy = $accuracy ? (float) $accuracy : null;
         $this->isGpsDetected = true;
 
-        if ($this->office) {
-            $geoService = app(GeoLocationService::class);
-            $validation = $geoService->validateOfficeGeofence($this->office, $this->latitude, $this->longitude);
-
-            $this->isWithinRadius = $validation['is_valid'];
-            $this->distanceFromOffice = $validation['distance_meters'];
-            $this->geofenceMessage = $validation['message'];
-        }
+        $this->refreshGeofence();
     }
 
     /**
@@ -601,10 +692,10 @@ class MyAttendance extends Page
     public function doOvertimeCheckIn(): void
     {
         $attendance = $this->todayAttendance;
-        $office = $this->office;
-        $policy = $this->policy;
+        $homeOffice = $this->office;
+        $otOffice = $this->overtimeOffice;
 
-        if (!$office || !$policy || !$attendance) {
+        if (!$otOffice || !$attendance) {
             Notification::make()
                 ->title('Overtime Not Available')
                 ->body('Cannot initiate overtime. Make sure you have completed regular attendance today.')
@@ -614,7 +705,18 @@ class MyAttendance extends Page
         }
 
         $policyService = app(AttendancePolicyService::class);
-        $check = $policyService->canOvertimeCheckIn($office, $policy, $attendance);
+        $policy = $policyService->getActivePolicy($otOffice) ?? $this->policy;
+
+        if (!$policy) {
+            Notification::make()
+                ->title('Overtime Policy Missing')
+                ->body('No active attendance policy configured for the selected overtime office.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $check = $policyService->canOvertimeCheckIn($otOffice, $policy, $attendance);
         if (!$check['allowed']) {
             Notification::make()
                 ->title('Overtime Not Allowed')
@@ -634,7 +736,7 @@ class MyAttendance extends Page
         }
 
         $geoService = app(GeoLocationService::class);
-        $geo = $geoService->validateOfficeGeofence($office, $this->latitude, $this->longitude);
+        $geo = $geoService->validateOfficeGeofence($otOffice, $this->latitude, $this->longitude);
         if (!$geo['is_valid']) {
             Notification::make()
                 ->title('Outside Geofence')
@@ -660,6 +762,7 @@ class MyAttendance extends Page
 
         $overtime = Overtime::create([
             'attendance_id' => $attendance->id,
+            'office_id' => $otOffice->id,
             'overtime_date' => $todayDate,
             'check_in_at' => $now,
             'check_in_latitude' => $this->latitude,
@@ -674,13 +777,14 @@ class MyAttendance extends Page
 
         Notification::make()
             ->title('Overtime Check-In Successful!')
-            ->body('Overtime session started at ' . $now->setTimezone($office->timezone)->format('H:i:s') . '.')
+            ->body('Overtime session started at ' . $now->setTimezone($otOffice->timezone ?? config('app.timezone'))->format('H:i:s') . ' (' . $otOffice->name . ').')
             ->success()
             ->send();
 
         // Dispatch WhatsApp Share Modal
+        // NOTE: Destination WhatsApp group link target remains unchanged (home/regular office group)
         $waService = app(AttendanceWhatsAppNotificationService::class);
-        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $groupLink = $waService->getGroupLink($homeOffice?->whatsapp_group_link ?? null);
         $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
         $waMessage = $waService->formatOvertimeCheckIn($overtime, $currentNotes, $currentAccuracy, $photoPublicUrl);
 
@@ -728,9 +832,10 @@ class MyAttendance extends Page
             return;
         }
 
-        $office = $this->office;
+        $homeOffice = $this->office;
+        $otOffice = $overtime->actual_office ?? $homeOffice;
         $geoService = app(GeoLocationService::class);
-        $geo = $geoService->validateOfficeGeofence($office, $this->latitude, $this->longitude);
+        $geo = $geoService->validateOfficeGeofence($otOffice, $this->latitude, $this->longitude);
         if (!$geo['is_valid']) {
             Notification::make()
                 ->title('Outside Geofence')
@@ -741,7 +846,8 @@ class MyAttendance extends Page
         }
 
         $now = Carbon::now();
-        $policy = $this->policy;
+        $policyService = app(AttendancePolicyService::class);
+        $policy = $policyService->getActivePolicy($otOffice) ?? $this->policy;
         $rawSelfie = $this->selfie;
         $currentNotes = $this->notes;
 
@@ -781,7 +887,7 @@ class MyAttendance extends Page
 
         // Dispatch WhatsApp Share Modal
         $waService = app(AttendanceWhatsAppNotificationService::class);
-        $groupLink = $waService->getGroupLink($office->whatsapp_group_link ?? null);
+        $groupLink = $waService->getGroupLink($homeOffice?->whatsapp_group_link ?? null);
         $photoPublicUrl = $waService->resolvePhotoUrl(null, $selfiePath);
         $waMessage = $waService->formatOvertimeCheckOut($overtime, $currentNotes, $photoPublicUrl);
 
