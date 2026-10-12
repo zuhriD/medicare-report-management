@@ -78,6 +78,8 @@ class AttendanceRecapService
 
         $staffData = [];
         $grandTotalPresent = 0;
+        $grandTotalLateDays = 0;
+        $grandTotalLateMinutes = 0;
         $grandTotalLeaves = 0;
         $grandTotalAlpha = 0;
         $grandTotalRegularAllowance = 0.00;
@@ -113,6 +115,8 @@ class AttendanceRecapService
                 ->get();
 
             $presentDays = 0;
+            $userLateDays = 0;
+            $userLateMinutes = 0;
             $userWorkingMinutes = 0;
             $userRegularAllowance = 0.00;
             $userOvertimeMinutes = 0;
@@ -146,6 +150,10 @@ class AttendanceRecapService
                 // Check attendance (including Sunday or Holiday work)
                 if ($att && $att->isCheckedIn()) {
                     $presentDays++;
+                    if ($att->isLate()) {
+                        $userLateDays++;
+                        $userLateMinutes += (int) $att->late_minutes;
+                    }
                     $dayWorkingMinutes = (int) $att->working_minutes;
                     $userWorkingMinutes += $dayWorkingMinutes;
 
@@ -154,13 +162,17 @@ class AttendanceRecapService
                         $userRegularAllowance += $dayRegularAllowance;
                     }
 
-                    $statusLabel = ($isSunday || $userHoliday) ? 'Hadir (Hari Libur)' : 'Hadir';
+                    $statusLabel = ($isSunday || $userHoliday) 
+                        ? 'Hadir (Hari Libur)' 
+                        : ($att->isLate() ? 'Hadir (Terlambat ' . $att->late_minutes . 'm)' : 'Hadir');
 
                     $dailyBreakdown[$dateStr] = [
                         'date' => $dateStr,
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'present',
                         'status_label' => $statusLabel,
+                        'is_late' => $att->isLate(),
+                        'late_minutes' => (int) $att->late_minutes,
                         'check_in_at' => $att->check_in_at?->format('H:i:s'),
                         'check_out_at' => $att->check_out_at?->format('H:i:s'),
                         'working_minutes' => $dayWorkingMinutes,
@@ -257,6 +269,8 @@ class AttendanceRecapService
                 'office_name' => $office?->name ?? 'Belum Ditugaskan',
                 'working_days' => $workingDays,
                 'present_days' => $presentDays,
+                'late_days' => $userLateDays,
+                'late_minutes' => $userLateMinutes,
                 'leave_days' => $userLeaveDays,
                 'alpha_days' => $userAlphaDays,
                 'attendance_rate' => $attendanceRate,
@@ -275,6 +289,8 @@ class AttendanceRecapService
             ];
 
             $grandTotalPresent += $presentDays;
+            $grandTotalLateDays += $userLateDays;
+            $grandTotalLateMinutes += $userLateMinutes;
             $grandTotalLeaves += $userLeaveDays;
             $grandTotalAlpha += $userAlphaDays;
             $grandTotalRegularAllowance += $userRegularAllowance;
@@ -309,6 +325,8 @@ class AttendanceRecapService
                 'total_staff' => $totalStaff,
                 'working_days' => $workingDays,
                 'total_present' => $grandTotalPresent,
+                'total_late_days' => $grandTotalLateDays,
+                'total_late_minutes' => $grandTotalLateMinutes,
                 'total_leaves' => $grandTotalLeaves,
                 'total_alpha' => $grandTotalAlpha,
                 'average_attendance_rate' => $avgAttendanceRate,

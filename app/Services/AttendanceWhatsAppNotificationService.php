@@ -59,6 +59,10 @@ class AttendanceWhatsAppNotificationService
 
         $photoLink = $this->resolvePhotoUrl($photoUrl, $attendance->check_in_selfie);
 
+        $statusStr = $attendance->isLate()
+            ? '⚠️ Terlambat' . ($attendance->late_minutes > 0 ? " ({$attendance->late_minutes} Menit)" : '')
+            : '✅ Tepat Waktu';
+
         $lines = [
             '━━━━━━━━━━━━━━━━━━━━━',
             '*ATTENDANCE CHECK-IN REPORT*',
@@ -67,6 +71,7 @@ class AttendanceWhatsAppNotificationService
             '*Office:* ' . ($office?->name ?? 'Office'),
             '*Date:* ' . $dateStr,
             '*Check-In Time:* ' . $timeStr . ' (' . $tz . ')',
+            '*Status Kehadiran:* ' . $statusStr,
             '*Location Status:* ' . $gpsInfo,
         ];
 

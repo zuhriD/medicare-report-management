@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
 use App\Models\Office;
@@ -325,5 +326,115 @@ class AttendanceServicesTest extends TestCase
         $this->assertStringStartsWith('attendance-selfies/2026/09/21/99/check_in_', $storedPath);
         $this->assertStringEndsWith('.webp', $storedPath);
         $this->assertTrue($this->selfieService->exists($storedPath));
+    }
+
+    public function test_punctuality_evaluation_identifies_on_time_and_late_attendances()
+    {
+        $policy = new AttendanceSetting([
+            'regular_check_in_start' => '08:00:00',
+        ]);
+
+        // Case 1: Early check-in (07:45:00) -> ON_TIME, late_minutes = 0
+        $early = Carbon::parse('2026-10-12 07:45:00');
+        $evalEarly = $this->calcService->evaluatePunctuality($early, $policy);
+        $this->assertEquals(AttendanceStatus::ON_TIME, $evalEarly['status']);
+        $this->assertFalse($evalEarly['is_late']);
+        $this->assertEquals(0, $evalEarly['late_minutes']);
+
+        // Case 2: Exactly on schedule (08:00:00) -> ON_TIME, late_minutes = 0
+        $exact = Carbon::parse('2026-10-12 08:00:00');
+        $evalExact = $this->calcService->evaluatePunctuality($exact, $policy);
+        $this->assertEquals(AttendanceStatus::ON_TIME, $evalExact['status']);
+        $this->assertFalse($evalExact['is_late']);
+        $this->assertEquals(0, $evalExact['late_minutes']);
+
+        // Case 3: Late check-in (08:15:30) -> LATE, late_minutes = 16 (ceil)
+        $late = Carbon::parse('2026-10-12 08:15:30');
+        $evalLate = $this->calcService->evaluatePunctuality($late, $policy);
+        $this->assertEquals(AttendanceStatus::LATE, $evalLate['status']);
+        $this->assertTrue($evalLate['is_late']);
+        $this->assertEquals(16, $evalLate['late_minutes']);
+
+        // Case 4: Late check-in (08:15:00) -> LATE, late_minutes = 15
+        $late15 = Carbon::parse('2026-10-12 08:15:00');
+        $evalLate15 = $this->calcService->evaluatePunctuality($late15, $policy);
+        $this->assertEquals(AttendanceStatus::LATE, $evalLate15['status']);
+        $this->assertTrue($evalLate15['is_late']);
+        $this->assertEquals(15, $evalLate15['late_minutes']);
+
+        // Case 5: Policy with 30-minute late tolerance
+        $policyWithTolerance = new AttendanceSetting([
+            'regular_check_in_start' => '08:00:00',
+            'late_tolerance_minute' => 30,
+        ]);
+
+        // Check in at 08:15 (within tolerance) -> ON_TIME, late_minutes = 0
+        $eval815 = $this->calcService->evaluatePunctuality(Carbon::parse('2026-10-12 08:15:00'), $policyWithTolerance);
+        $this->assertEquals(AttendanceStatus::ON_TIME, $eval815['status']);
+        $this->assertEquals(0, $eval815['late_minutes']);
+
+        // Check in at 08:30 (exactly at tolerance cutoff) -> ON_TIME, late_minutes = 0
+        $eval830 = $this->calcService->evaluatePunctuality(Carbon::parse('2026-10-12 08:30:00'), $policyWithTolerance);
+        $this->assertEquals(AttendanceStatus::ON_TIME, $eval830['status']);
+        $this->assertEquals(0, $eval830['late_minutes']);
+
+        // Check in at 08:35 (5 minutes past 30m tolerance) -> LATE, late_minutes = 5
+        $eval835 = $this->calcService->evaluatePunctuality(Carbon::parse('2026-10-12 08:35:00'), $policyWithTolerance);
+        $this->assertEquals(AttendanceStatus::LATE, $eval835['status']);
+        $this->assertTrue($eval835['is_late']);
+        $this->assertEquals(5, $eval835['late_minutes']);
+    }
+
+    public function test_early_check_in_working_duration_starts_from_regular_check_in_start()
+    {
+        $policy = new AttendanceSetting([
+            'regular_check_in_start' => '08:00:00',
+            'regular_check_out_end' => '17:00:00',
+        ]);
+
+        // Check in early at 07:45, check out at 15:00.
+        // Gross time without policy = 7h 15m (435 minutes).
+        // With policy snapping to 08:00:00 = 7h 00m (420 minutes).
+        $checkIn = Carbon::parse('2026-10-12 07:45:00');
+        $checkOut = Carbon::parse('2026-10-12 15:00:00');
+
+        $workingMinutes = $this->calcService->calculateWorkingMinutes($checkIn, $checkOut, 0, $policy);
+        $this->assertEquals(420, $workingMinutes);
+    }
+
+    public function test_early_check_in_is_allowed_in_policy_service()
+    {
+        $office = Office::create([
+            'name' => 'HQ Office',
+            'latitude' => 3.134,
+            'longitude' => 101.686,
+            'attendance_radius_meter' => 100,
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true,
+        ]);
+
+        $policy = AttendanceSetting::create([
+            'office_id' => $office->id,
+            'regular_check_in_start' => '08:00:00',
+            'regular_check_out_end' => '17:00:00',
+            'minimum_regular_minutes' => 360,
+            'regular_allowance_amount' => 50.00,
+            'overtime_check_in_start' => '18:00:00',
+            'overtime_check_out_end' => '22:00:00',
+            'minimum_overtime_minutes' => 120,
+            'overtime_allowance_amount' => 30.00,
+            'effective_from' => '2026-01-01',
+            'is_active' => true,
+        ]);
+
+        // Checking in early at 07:30 (before 08:00) is allowed
+        $earlyMorning = Carbon::parse('2026-10-12 07:30:00', 'Asia/Kuala_Lumpur');
+        $check = $this->policyService->canRegularCheckIn($office, $policy, $earlyMorning);
+        $this->assertTrue($check['allowed']);
+
+        // Checking in late is also allowed (recorded as late status)
+        $afterHours = Carbon::parse('2026-10-12 17:30:00', 'Asia/Kuala_Lumpur');
+        $checkAfter = $this->policyService->canRegularCheckIn($office, $policy, $afterHours);
+        $this->assertTrue($checkAfter['allowed']);
     }
 }

@@ -44,17 +44,6 @@ class AttendancePolicyService
         $startTimeStr = Carbon::parse($policy->regular_check_in_start)->format('H:i:s');
         $endTimeStr = Carbon::parse($policy->regular_check_out_end)->format('H:i:s');
 
-        // Check if too early
-        if ($currentTimeStr < $startTimeStr) {
-            return [
-                'allowed' => false,
-                'reason' => "Check-in has not opened yet. Regular check-in starts at {$startTimeStr} ({$timezone}).",
-                'current_time' => $currentTimeStr,
-                'start_time' => $startTimeStr,
-                'end_time' => $endTimeStr,
-            ];
-        }
-
         return [
             'allowed' => true,
             'reason' => null,

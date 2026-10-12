@@ -48,14 +48,21 @@ class AttendanceSettingResource extends Resource
                 Section::make('Regular Attendance Policy')
                     ->description('Configure working hours window, minimum duration, and regular allowance.')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 TimePicker::make('regular_check_in_start')
                                     ->label('Check-In Opens At')
                                     ->default('08:00:00')
                                     ->seconds(false)
                                     ->required()
-                                    ->helperText('Staff cannot check-in earlier than this time.'),
+                                    ->helperText('Standard regular check-in start time.'),
+                                TextInput::make('late_tolerance_minute')
+                                    ->label('Late Tolerance (Minutes)')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->required()
+                                    ->helperText('Toleransi menit sebelum dianggap telat (misal: 30 menit).'),
                                 TimePicker::make('regular_check_out_end')
                                     ->label('Check-Out Maximum Time')
                                     ->default('17:00:00')
@@ -161,6 +168,11 @@ class AttendanceSettingResource extends Resource
                     ->getStateUsing(fn ($record) => substr($record->regular_check_in_start, 0, 5) . ' - ' . substr($record->regular_check_out_end, 0, 5))
                     ->badge()
                     ->color('info'),
+                TextColumn::make('late_tolerance_minute')
+                    ->label('Toleransi Telat')
+                    ->formatStateUsing(fn ($state) => ($state ?? 0) . 'm')
+                    ->badge()
+                    ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 TextColumn::make('minimum_regular_minutes')
                     ->label('Min Regular')
                     ->formatStateUsing(fn ($state) => round($state / 60, 1) . 'h (' . $state . 'm)')
