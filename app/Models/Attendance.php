@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AttendanceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,8 @@ class Attendance extends Model
         'office_id',
         'attendance_setting_id',
         'attendance_date',
+        'status',
+        'late_minutes',
         'check_in_at',
         'check_in_latitude',
         'check_in_longitude',
@@ -37,6 +40,8 @@ class Attendance extends Model
     {
         return [
             'attendance_date' => 'date',
+            'status' => AttendanceStatus::class,
+            'late_minutes' => 'integer',
             'check_in_at' => 'datetime',
             'check_out_at' => 'datetime',
             'check_in_latitude' => 'float',
@@ -99,6 +104,25 @@ class Attendance extends Model
     public function isCheckedOut(): bool
     {
         return !is_null($this->check_out_at);
+    }
+
+    public function isLate(): bool
+    {
+        return $this->status === AttendanceStatus::LATE;
+    }
+
+    public function isRegularOnTime(): bool
+    {
+        return $this->status === AttendanceStatus::ON_TIME;
+    }
+
+    public function getPunctualityDescriptionAttribute(): string
+    {
+        if ($this->isLate()) {
+            return $this->late_minutes > 0 ? "Terlambat ({$this->late_minutes}m)" : 'Terlambat';
+        }
+
+        return 'Tepat Waktu';
     }
 
     public function isOvertimeEligible(): bool

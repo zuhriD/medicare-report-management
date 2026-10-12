@@ -90,6 +90,7 @@ class DailyAttendanceAuditService
         $totalCurrentlyPaused = 0;
         $totalLeaves = 0;
         $totalAlpha = 0;
+        $totalLate = 0;
         $totalWorkingMinutes = 0;
         $totalOvertimeMinutes = 0;
         $totalBreakMinutes = 0;
@@ -120,6 +121,9 @@ class DailyAttendanceAuditService
                 $badgeColor = 'gray';
             } elseif ($att && $att->isCheckedIn()) {
                 $totalCheckedIn++;
+                if ($att->isLate()) {
+                    $totalLate++;
+                }
                 $checkInSelfieUrl = $this->selfieService->getSelfieUrl($att->check_in_selfie);
 
                 if ($office && $att->check_in_latitude && $att->check_in_longitude) {
@@ -211,6 +215,9 @@ class DailyAttendanceAuditService
                 'badge_color' => $badgeColor,
                 'has_attendance' => !is_null($att),
                 'check_in_at' => $att?->check_in_at?->format('H:i:s'),
+                'is_late' => $att?->isLate() ?? false,
+                'late_minutes' => $att?->late_minutes ?? 0,
+                'punctuality_description' => $att?->punctuality_description,
                 'check_out_at' => $att?->check_out_at?->format('H:i:s'),
                 'check_in_selfie' => $checkInSelfieUrl,
                 'check_out_selfie' => $checkOutSelfieUrl,
@@ -253,6 +260,7 @@ class DailyAttendanceAuditService
                 'total_currently_paused' => $totalCurrentlyPaused,
                 'total_leaves' => $totalLeaves,
                 'total_alpha' => $totalAlpha,
+                'total_late' => $totalLate,
                 'total_working_hours' => round($totalWorkingMinutes / 60, 1),
                 'total_overtime_hours' => round($totalOvertimeMinutes / 60, 1),
                 'total_break_minutes' => $totalBreakMinutes,

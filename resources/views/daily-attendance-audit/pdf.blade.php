@@ -214,7 +214,7 @@
                             {{ $staff['status_label'] }}
                         </span>
                     </td>
-                    <td>{{ $staff['check_in_at'] ?? '-' }}</td>
+                    <td>{{ $staff['check_in_at'] ?? '-' }}{{ !empty($staff['is_late']) ? ' (Late +' . $staff['late_minutes'] . 'm)' : '' }}</td>
                     <td>{{ $staff['check_out_at'] ?? '-' }}</td>
                     <td>
                         @if ($staff['check_in_distance'] !== null)
