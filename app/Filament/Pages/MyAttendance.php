@@ -330,11 +330,17 @@ class MyAttendance extends Page
             $now
         );
 
+        // Evaluate punctuality
+        $calcService = app(AttendanceCalculationService::class);
+        $punctuality = $calcService->evaluatePunctuality($now, $policy);
+
         $attendance = Attendance::create([
             'user_id' => $this->user->id,
             'office_id' => $office->id,
             'attendance_setting_id' => $policy->id,
             'attendance_date' => $todayDate,
+            'status' => $punctuality['status'],
+            'late_minutes' => $punctuality['late_minutes'],
             'check_in_at' => $now,
             'check_in_latitude' => $this->latitude,
             'check_in_longitude' => $this->longitude,
@@ -346,9 +352,14 @@ class MyAttendance extends Page
         $this->reset(['selfie', 'notes']);
         $this->evaluateCurrentState();
 
+        $timeFormatted = $now->setTimezone($office->timezone)->format('H:i:s');
+        $statusNotice = $punctuality['is_late']
+            ? " (Terlambat {$punctuality['late_minutes']} menit)"
+            : ' (Tepat Waktu)';
+
         Notification::make()
             ->title('Check-In Successful!')
-            ->body('Your check-in has been recorded at ' . $now->setTimezone($office->timezone)->format('H:i:s') . '.')
+            ->body('Your check-in has been recorded at ' . $timeFormatted . $statusNotice . '.')
             ->success()
             ->send();
 

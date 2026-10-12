@@ -57,20 +57,25 @@ class DailyAttendanceAuditServiceTest extends TestCase
             'is_active' => true,
         ]);
 
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'team_member', 'guard_name' => 'web']);
+
         $this->staffHadir = User::factory()->create([
             'name' => 'Staff Hadir',
             'office_id' => $this->officeMalang->id,
         ]);
+        $this->staffHadir->assignRole('team_member');
 
         $this->staffCuti = User::factory()->create([
             'name' => 'Staff Cuti',
             'office_id' => $this->officeMalang->id,
         ]);
+        $this->staffCuti->assignRole('team_member');
 
         $this->staffAlpha = User::factory()->create([
             'name' => 'Staff Alpha',
             'office_id' => $this->officeMalang->id,
         ]);
+        $this->staffAlpha->assignRole('team_member');
     }
 
     public function test_get_daily_audit_data_identifies_checked_in_checked_out_and_breaks()

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\AttendanceStatus;
 use App\Filament\Resources\AttendanceMonitoringResource\Pages;
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
@@ -101,6 +102,18 @@ class AttendanceMonitoringResource extends Resource
                                 })
                                 ->nullable(),
                         ]),
+                        Grid::make(2)->schema([
+                            \Filament\Forms\Components\Select::make('status')
+                                ->label('Status Masuk')
+                                ->options(AttendanceStatus::class)
+                                ->required(),
+                            TextInput::make('late_minutes')
+                                ->label('Keterlambatan (Menit)')
+                                ->numeric()
+                                ->default(0)
+                                ->minValue(0)
+                                ->helperText('Durasi keterlambatan dalam menit jika check-in melebihi jam masuk.'),
+                        ]),
                         Grid::make(3)->schema([
                             TextInput::make('working_minutes')
                                 ->label('Working Duration (Minutes)')
@@ -130,14 +143,25 @@ class AttendanceMonitoringResource extends Resource
     {
         $checkIn = $get('check_in_at');
         $checkOut = $get('check_out_at');
+        $policy = $record?->attendanceSetting ?? AttendanceSetting::active()->first();
+        $service = app(AttendanceCalculationService::class);
+
+        if (filled($checkIn) && $policy) {
+            try {
+                $in = Carbon::parse($checkIn);
+                $punctuality = $service->evaluatePunctuality($in, $policy);
+                $set('status', $punctuality['status']->value);
+                $set('late_minutes', $punctuality['late_minutes']);
+            } catch (\Throwable $e) {
+                // Ignore parsing exceptions
+            }
+        }
 
         if (filled($checkIn) && filled($checkOut)) {
             try {
                 $in = Carbon::parse($checkIn);
                 $out = Carbon::parse($checkOut);
                 $totalBreakMinutes = $record ? $record->totalBreakMinutes() : 0;
-                $policy = $record?->attendanceSetting ?? AttendanceSetting::active()->first();
-                $service = app(AttendanceCalculationService::class);
                 $workingMinutes = $service->calculateWorkingMinutes($in, $out, $totalBreakMinutes, $policy);
                 $set('working_minutes', $workingMinutes);
 
@@ -168,12 +192,19 @@ class AttendanceMonitoringResource extends Resource
 
                 InfoSection::make('Check-In Details')
                     ->schema([
-                        InfoGrid::make(3)->schema([
+                        InfoGrid::make(4)->schema([
                             TextEntry::make('check_in_at')
                                 ->label('Check-In Timestamp')
                                 ->dateTime('d M Y, H:i:s')
                                 ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                                 ->placeholder('Not checked in'),
+                            TextEntry::make('status')
+                                ->label('Status Ketepatan Waktu')
+                                ->badge()
+                                ->formatStateUsing(fn(?Attendance $record) => $record?->isLate()
+                                    ? "Terlambat (" . ($record->late_minutes ?? 0) . " menit)"
+                                    : 'Tepat Waktu')
+                                ->color(fn(?Attendance $record) => $record?->isLate() ? 'danger' : 'success'),
                             TextEntry::make('check_in_coordinates')
                                 ->label('GPS Location')
                                 ->getStateUsing(fn($record) => $record->check_in_latitude && $record->check_in_longitude
@@ -299,6 +330,14 @@ class AttendanceMonitoringResource extends Resource
                     ->timezone(fn($record) => $record->office?->timezone ?? config('app.timezone'))
                     ->placeholder('—')
                     ->sortable(),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn(?Attendance $record) => $record?->isLate()
+                        ? "Terlambat (" . ($record->late_minutes ?? 0) . "m)"
+                        : ($record?->check_in_at ? 'Tepat Waktu' : '—'))
+                    ->color(fn(?Attendance $record) => $record?->isLate() ? 'danger' : ($record?->check_in_at ? 'success' : 'gray'))
+                    ->sortable(),
                 TextColumn::make('check_out_at')
                     ->label('Check-Out')
                     ->time('H:i')
@@ -368,6 +407,9 @@ class AttendanceMonitoringResource extends Resource
                     ->searchable()
                     ->preload()
                     ->label('Filter Staff'),
+                SelectFilter::make('status')
+                    ->label('Status Ketepatan Waktu')
+                    ->options(AttendanceStatus::class),
                 TernaryFilter::make('allowance_eligible')
                     ->label('Allowance Eligible'),
             ])

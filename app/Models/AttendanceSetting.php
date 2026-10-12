@@ -14,6 +14,7 @@ class AttendanceSetting extends Model
     protected $fillable = [
         'office_id',
         'regular_check_in_start',
+        'late_tolerance_minute',
         'regular_check_out_end',
         'minimum_regular_minutes',
         'regular_allowance_amount',
@@ -32,6 +33,7 @@ class AttendanceSetting extends Model
         return [
             'effective_from' => 'date',
             'effective_until' => 'date',
+            'late_tolerance_minute' => 'integer',
             'minimum_regular_minutes' => 'integer',
             'regular_allowance_amount' => 'decimal:2',
             'absence_fine_amount' => 'decimal:2',

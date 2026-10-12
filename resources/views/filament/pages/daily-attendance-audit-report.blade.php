@@ -560,8 +560,13 @@
                                                      title="Klik untuk memperbesar" />
                                             @endif
                                             <div>
-                                                <div class="font-bold text-gray-900 dark:text-white font-mono">
-                                                    {{ $staff['check_in_at'] }}
+                                                <div class="font-bold text-gray-900 dark:text-white font-mono flex items-center gap-1.5">
+                                                    <span>{{ $staff['check_in_at'] }}</span>
+                                                    @if(!empty($staff['is_late']))
+                                                        <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" title="Terlambat {{ $staff['late_minutes'] }} menit">
+                                                            +{{ $staff['late_minutes'] }}m
+                                                        </span>
+                                                    @endif
                                                 </div>
                                                 @if($staff['check_in_distance'] !== null)
                                                     <div class="text-[11px] mt-0.5">

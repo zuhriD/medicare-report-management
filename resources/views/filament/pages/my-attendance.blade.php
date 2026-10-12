@@ -432,6 +432,22 @@
                                 {{ $this->todayAttendance?->check_in_at ? $this->todayAttendance->check_in_at->setTimezone($this->office?->timezone ?? config('app.timezone'))->format('H:i:s') : '—' }}
                             </span>
                         </div>
+                        @if ($this->todayAttendance?->check_in_at)
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium">Status Masuk:</span>
+                            <span>
+                                @if ($this->todayAttendance->isLate())
+                                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                    ⚠️ Terlambat ({{ $this->todayAttendance->late_minutes }}m)
+                                </span>
+                                @else
+                                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                                    ✓ Tepat Waktu
+                                </span>
+                                @endif
+                            </span>
+                        </div>
+                        @endif
 
                         {{-- Total Break Info (if any) --}}
                         @if ($this->todayAttendance && ($this->todayAttendance->totalBreakMinutes() > 0 || $this->todayAttendance->isPaused()))
@@ -762,6 +778,7 @@
                             <th class="py-2.5 px-3 rounded-l-lg">Tanggal</th>
                             <th class="py-2.5 px-3">Kantor</th>
                             <th class="py-2.5 px-3">Jam Masuk</th>
+                            <th class="py-2.5 px-3">Status</th>
                             <th class="py-2.5 px-3">Jam Pulang</th>
                             <th class="py-2.5 px-3">Durasi Kerja</th>
                             <th class="py-2.5 px-3">Tunjangan Reg.</th>
@@ -784,6 +801,21 @@
                             </td>
                             <td class="py-2.5 px-3">
                                 {{ $row->check_in_at ? $row->check_in_at->setTimezone($row->office?->timezone ?? config('app.timezone'))->format('H:i') : '—' }}
+                            </td>
+                            <td class="py-2.5 px-3">
+                                @if ($row->check_in_at)
+                                    @if ($row->isLate())
+                                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap">
+                                        Terlambat ({{ $row->late_minutes }}m)
+                                    </span>
+                                    @else
+                                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">
+                                        Tepat Waktu
+                                    </span>
+                                    @endif
+                                @else
+                                <span class="text-gray-400">—</span>
+                                @endif
                             </td>
                             <td class="py-2.5 px-3">
                                 {{ $row->check_out_at ? $row->check_out_at->setTimezone($row->office?->timezone ?? config('app.timezone'))->format('H:i') : 'In Progress' }}
