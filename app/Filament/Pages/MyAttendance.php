@@ -5,8 +5,10 @@ namespace App\Filament\Pages;
 use App\Models\Attendance;
 use App\Models\AttendanceBreak;
 use App\Models\AttendanceSetting;
+use App\Models\DailyReport;
 use App\Models\Office;
 use App\Models\Overtime;
+use App\Models\PlanOfAction;
 use App\Services\AttendanceCalculationService;
 use App\Services\AttendancePolicyService;
 use App\Services\AttendanceWhatsAppNotificationService;
@@ -50,6 +52,11 @@ class MyAttendance extends Page
     public string $pauseReason = '';
     public ?string $pauseNotes = null;
     public bool $showPauseModal = false;
+
+    // Incomplete daily reports modal state
+    public bool $showIncompleteReportModal = false;
+    public bool $hasPoaToday = false;
+    public bool $hasDailyReportToday = false;
 
     public string $actionType = 'regular_check_in'; // regular_check_in, paused, regular_check_out, ot_check_in, ot_check_out
 
@@ -399,6 +406,40 @@ class MyAttendance extends Page
     }
 
     /**
+     * Check whether staff has submitted Plan of Action and Daily Report for today.
+     */
+    public function checkTodayReportsStatus(): void
+    {
+        $userId = $this->user?->id;
+        $date = $this->todayDate;
+
+        $this->hasPoaToday = PlanOfAction::where('user_id', $userId)
+            ->whereDate('start_date', $date)
+            ->exists();
+
+        $this->hasDailyReportToday = DailyReport::where('user_id', $userId)
+            ->whereDate('report_date', $date)
+            ->exists();
+    }
+
+    /**
+     * Close incomplete report warning modal.
+     */
+    public function closeIncompleteReportModal(): void
+    {
+        $this->showIncompleteReportModal = false;
+    }
+
+    /**
+     * Confirm check-out bypassing the incomplete report warning.
+     */
+    public function confirmCheckOut(): void
+    {
+        $this->showIncompleteReportModal = false;
+        $this->doRegularCheckOut(force: true);
+    }
+
+    /**
      * Perform Pause Attendance (Izin Keluar).
      */
     public function pauseAttendance(): void
@@ -580,7 +621,7 @@ class MyAttendance extends Page
     /**
      * Perform Regular Check-Out.
      */
-    public function doRegularCheckOut(): void
+    public function doRegularCheckOut(bool $force = false): void
     {
         $attendance = $this->todayAttendance;
         if (!$attendance || !$attendance->isCheckedIn()) {
@@ -623,6 +664,15 @@ class MyAttendance extends Page
                 ->danger()
                 ->send();
             return;
+        }
+
+        // Check if Plan of Action and Daily Report have been completed today
+        if (!$force) {
+            $this->checkTodayReportsStatus();
+            if (!$this->hasPoaToday || !$this->hasDailyReportToday) {
+                $this->showIncompleteReportModal = true;
+                return;
+            }
         }
 
         $now = Carbon::now();
@@ -671,7 +721,7 @@ class MyAttendance extends Page
 
         $durationText = $calcService->formatMinutesToDuration($workingMinutes);
         $breakInfoText = $totalBreakMinutes > 0 ? " (Istirahat/Izin: " . $calcService->formatMinutesToDuration($totalBreakMinutes) . ")" : "";
-        $this->reset(['selfie', 'notes']);
+        $this->reset(['selfie', 'notes', 'showIncompleteReportModal']);
         $this->evaluateCurrentState();
 
         Notification::make()

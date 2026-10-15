@@ -136,7 +136,7 @@ class StaffAttendanceTest extends TestCase
         Livewire::test(MyAttendance::class)
             ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
             ->set('selfie', $sampleSelfie)
-            ->call('doRegularCheckOut')
+            ->call('doRegularCheckOut', true)
             ->assertHasNoErrors();
 
         $attendance->refresh();
@@ -210,7 +210,7 @@ class StaffAttendanceTest extends TestCase
         Livewire::test(MyAttendance::class)
             ->call('updateCoordinates', 3.1340, 101.6860, 5.0)
             ->set('selfie', $sampleSelfie)
-            ->call('doRegularCheckOut')
+            ->call('doRegularCheckOut', true)
             ->assertHasNoErrors();
 
         $attendance->refresh();
