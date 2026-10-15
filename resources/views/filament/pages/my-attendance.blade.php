@@ -804,15 +804,15 @@
                             </td>
                             <td class="py-2.5 px-3">
                                 @if ($row->check_in_at)
-                                    @if ($row->isLate())
-                                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap">
-                                        Terlambat ({{ $row->late_minutes }}m)
-                                    </span>
-                                    @else
-                                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">
-                                        Tepat Waktu
-                                    </span>
-                                    @endif
+                                @if ($row->isLate())
+                                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap">
+                                    Terlambat ({{ $row->late_minutes }}m)
+                                </span>
+                                @else
+                                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">
+                                    Tepat Waktu
+                                </span>
+                                @endif
                                 @else
                                 <span class="text-gray-400">—</span>
                                 @endif
@@ -951,13 +951,117 @@
         </div>
         @endif
 
+        {{-- 4b. Modal Dialog: Peringatan Laporan Harian Belum Lengkap Sebelum Check-Out --}}
+        @if ($showIncompleteReportModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4 border border-gray-200 dark:border-gray-700">
+                {{-- Header --}}
+                <div class="flex items-start justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                            <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                        </span>
+                        <div>
+                            <h3 class="text-base font-extrabold text-gray-900 dark:text-white">
+                                Laporan Hari Ini Belum Lengkap
+                            </h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Peringatan sebelum check-out</p>
+                        </div>
+                    </div>
+                    <button type="button" wire:click="closeIncompleteReportModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                        <x-heroicon-m-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Body Content --}}
+                <div class="space-y-3">
+                    <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                        Halo <strong>{{ $this->user?->name }}</strong>, Anda belum mengisi laporan kerja berikut untuk hari ini:
+                    </p>
+
+                    {{-- List Status --}}
+                    <div class="space-y-2">
+                        {{-- Plan of Action --}}
+                        <div class="flex items-center justify-between p-3 rounded-xl border {{ $hasPoaToday ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40' : 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40' }}">
+                            <div class="flex items-center gap-2.5">
+                                @if ($hasPoaToday)
+                                <x-heroicon-s-check-circle class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                @else
+                                <x-heroicon-s-x-circle class="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />
+                                @endif
+                                <div>
+                                    <span class="text-xs font-bold text-gray-900 dark:text-white block">Plan of Action (PoA)</span>
+                                    <span class="text-[11px] {{ $hasPoaToday ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-rose-600 dark:text-rose-400 font-medium' }}">
+                                        {{ $hasPoaToday ? 'Sudah diisi hari ini' : 'Belum diisi hari ini' }}
+                                    </span>
+                                </div>
+                            </div>
+                            @if (!$hasPoaToday)
+                            <a href="{{ \App\Filament\Resources\PlanOfActionResource::getUrl('create') }}" target="_blank" class="px-2.5 py-1.5 text-[11px] font-bold text-white att-btn-warning rounded-lg transition inline-flex items-center gap-1 shadow-sm">
+                                <x-heroicon-m-arrow-top-right-on-square class="w-3.5 h-3.5 text-white" />
+                                <span class="text-white">Isi PoA</span>
+                            </a>
+                            @endif
+                        </div>
+
+                        {{-- Daily Report --}}
+                        <div class="flex items-center justify-between p-3 rounded-xl border {{ $hasDailyReportToday ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40' : 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40' }}">
+                            <div class="flex items-center gap-2.5">
+                                @if ($hasDailyReportToday)
+                                <x-heroicon-s-check-circle class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                @else
+                                <x-heroicon-s-x-circle class="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />
+                                @endif
+                                <div>
+                                    <span class="text-xs font-bold text-gray-900 dark:text-white block">Daily Report</span>
+                                    <span class="text-[11px] {{ $hasDailyReportToday ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-rose-600 dark:text-rose-400 font-medium' }}">
+                                        {{ $hasDailyReportToday ? 'Sudah diisi hari ini' : 'Belum diisi hari ini' }}
+                                    </span>
+                                </div>
+                            </div>
+                            @if (!$hasDailyReportToday)
+                            <a href="{{ \App\Filament\Resources\DailyReportResource::getUrl('create') }}" target="_blank" class="px-2.5 py-1.5 text-[11px] font-bold text-white att-btn-warning rounded-lg transition inline-flex items-center gap-1 shadow-sm">
+                                <x-heroicon-m-arrow-top-right-on-square class="w-3.5 h-3.5 text-white" />
+                                <span class="text-white">Isi Laporan</span>
+                            </a>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                        💡 <em>Jika Anda berencana mengisinya setelah ini (misalnya di rumah atau saat di perjalanan), Anda dapat memilih <strong>"Tetap Check-Out"</strong> atau menutup modal ini.</em>
+                    </div>
+                </div>
+
+                {{-- Footer Actions --}}
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <!-- <button
+                        type="button"
+                        wire:click="closeIncompleteReportModal"
+                        class="px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl transition cursor-pointer">
+                        Tutup (Isi Nanti / Batal)
+                    </button> -->
+                    <button
+                        type="button"
+                        wire:click="confirmCheckOut"
+                        wire:loading.attr="disabled"
+                        class="px-4 py-2.5 text-xs font-bold text-white att-btn-danger rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer">
+                        <x-heroicon-m-arrow-left-on-rectangle class="w-4 h-4 text-white" />
+                        <span wire:loading.remove wire:target="confirmCheckOut">Tetap Check-Out</span>
+                        <span wire:loading wire:target="confirmCheckOut">Memproses...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- 5. Modal Dialog: Kirim Laporan ke WhatsApp Group (Seamless & Modern) --}}
         <div
             x-show="showWaModal"
             x-cloak
             class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
             style="display: none;">
-            
+
             {{-- Backdrop with smooth blur & fade --}}
             <div
                 x-show="showWaModal"
@@ -980,7 +1084,7 @@
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 class="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 max-w-lg w-full overflow-hidden z-10 my-auto">
-                
+
                 {{-- Top Emerald Gradient Accent Bar --}}
                 <div class="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600"></div>
 
@@ -990,7 +1094,7 @@
                         <div class="flex items-center gap-3">
                             <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 ring-1 ring-emerald-500/20 shadow-sm">
                                 <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                                 </svg>
                             </div>
                             <div>
@@ -1101,7 +1205,8 @@
             Alpine.data('attendanceManager', () => ({
                 currentTime: '',
                 nowTimestamp: Date.now(),
-                timezone: '{{ $this->office?->timezone ?? config('app.timezone') }}',
+                timezone: '{{ $this->office?->timezone ?? config('
+                app.timezone ') }}',
 
                 // Geolocation State
                 latitude: @entangle('latitude'),
@@ -1375,20 +1480,26 @@
                                 try {
                                     const res = await fetch(photoUrl);
                                     const blob = await res.blob();
-                                    file = new File([blob], 'selfie_absensi_' + Date.now() + '.jpg', { type: blob.type || 'image/jpeg' });
+                                    file = new File([blob], 'selfie_absensi_' + Date.now() + '.jpg', {
+                                        type: blob.type || 'image/jpeg'
+                                    });
                                 } catch (e) {
                                     console.warn('Could not fetch photo blob:', e);
                                 }
                             }
 
-                            if (file && navigator.canShare({ files: [file] })) {
+                            if (file && navigator.canShare({
+                                    files: [file]
+                                })) {
                                 await navigator.share({
                                     files: [file],
                                     title: this.waShareData.action_label || 'Laporan Absensi',
                                     text: text
                                 });
                                 return;
-                            } else if (navigator.canShare({ text: text })) {
+                            } else if (navigator.canShare({
+                                    text: text
+                                })) {
                                 await navigator.share({
                                     title: this.waShareData.action_label || 'Laporan Absensi',
                                     text: text
@@ -1414,7 +1525,9 @@
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         navigator.clipboard.writeText(fullText).then(() => {
                             this.isCopied = true;
-                            setTimeout(() => { this.isCopied = false; }, 3000);
+                            setTimeout(() => {
+                                this.isCopied = false;
+                            }, 3000);
                         }).catch(() => {
                             this.fallbackCopyText(fullText);
                         });
@@ -1434,7 +1547,9 @@
                     try {
                         document.execCommand('copy');
                         this.isCopied = true;
-                        setTimeout(() => { this.isCopied = false; }, 3000);
+                        setTimeout(() => {
+                            this.isCopied = false;
+                        }, 3000);
                     } catch (err) {
                         console.error('Fallback copy failed', err);
                     }
@@ -1457,7 +1572,9 @@
                     while (n--) {
                         u8arr[n] = bstr.charCodeAt(n);
                     }
-                    return new File([u8arr], filename, { type: mime });
+                    return new File([u8arr], filename, {
+                        type: mime
+                    });
                 }
             }));
         });

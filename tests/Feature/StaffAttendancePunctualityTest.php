@@ -88,7 +88,7 @@ class StaffAttendancePunctualityTest extends TestCase
         Livewire::test(MyAttendance::class)
             ->call('updateCoordinates', 3.1340100, 101.6860100, 10.0)
             ->set('selfie', $sampleSelfie)
-            ->call('doRegularCheckOut')
+            ->call('doRegularCheckOut', true)
             ->assertHasNoErrors();
 
         $attendance->refresh();
