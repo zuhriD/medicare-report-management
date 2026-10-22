@@ -78,6 +78,7 @@ class AttendanceRecapService
 
         $staffData = [];
         $grandTotalPresent = 0;
+        $grandTotalOvertimeDays = 0;
         $grandTotalLateDays = 0;
         $grandTotalLateMinutes = 0;
         $grandTotalLeaves = 0;
@@ -94,7 +95,7 @@ class AttendanceRecapService
             $dailyFineRate = $office ? $this->fineService->getDailyFineRate($office, $startDate->toDateString()) : 50000.00;
 
             // Fetch Attendances with Overtime
-            $attendances = Attendance::with('overtime')
+            $attendances = Attendance::with(['overtime.office', 'office'])
                 ->where('user_id', $user->id)
                 ->whereDate('attendance_date', '>=', $startDate->toDateString())
                 ->whereDate('attendance_date', '<=', $endDate->toDateString())
@@ -119,6 +120,7 @@ class AttendanceRecapService
             $userLateMinutes = 0;
             $userWorkingMinutes = 0;
             $userRegularAllowance = 0.00;
+            $userOvertimeDays = 0;
             $userOvertimeMinutes = 0;
             $userOvertimeAllowance = 0.00;
             $userAlphaDays = 0;
@@ -139,8 +141,10 @@ class AttendanceRecapService
                 $dayWorkingMinutes = 0;
                 $dayRegularAllowance = 0.00;
                 $dayOtAllowance = $dayOvertime && $dayOvertime->allowance_eligible ? (float) $dayOvertime->allowance_amount : 0.00;
+                $hasOvertime = $dayOvertime && ($dayOvertime->isCheckedIn() || $dayOvertime->overtime_minutes > 0 || $dayOvertime->allowance_eligible);
 
-                if ($dayOvertime) {
+                if ($hasOvertime) {
+                    $userOvertimeDays++;
                     $userOvertimeMinutes += (int) $dayOvertime->overtime_minutes;
                     $userOvertimeAllowance += $dayOtAllowance;
                 }
@@ -177,7 +181,15 @@ class AttendanceRecapService
                         'check_out_at' => $att->check_out_at?->format('H:i:s'),
                         'working_minutes' => $dayWorkingMinutes,
                         'regular_allowance' => $dayRegularAllowance,
+                        'has_overtime' => $hasOvertime,
+                        'overtime_check_in_at' => $dayOvertime?->check_in_at?->format('H:i:s'),
+                        'overtime_check_out_at' => $dayOvertime?->check_out_at?->format('H:i:s'),
+                        'overtime_minutes' => $hasOvertime ? (int) $dayOvertime->overtime_minutes : 0,
+                        'overtime_hours' => $hasOvertime ? round($dayOvertime->overtime_minutes / 60, 1) : 0,
                         'overtime_allowance' => $dayOtAllowance,
+                        'overtime_eligible' => $hasOvertime && (bool) $dayOvertime->allowance_eligible,
+                        'overtime_office_name' => $hasOvertime ? ($dayOvertime->office?->name ?? $dayOvertime->actual_office?->name) : null,
+                        'overtime_notes' => $hasOvertime ? $dayOvertime->notes : null,
                         'fine_amount' => 0.00,
                     ];
                     continue;
@@ -190,9 +202,19 @@ class AttendanceRecapService
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'holiday',
                         'status_label' => $holidayLabel,
+                        'check_in_at' => null,
+                        'check_out_at' => null,
                         'working_minutes' => 0,
                         'regular_allowance' => 0.00,
+                        'has_overtime' => $hasOvertime,
+                        'overtime_check_in_at' => $dayOvertime?->check_in_at?->format('H:i:s'),
+                        'overtime_check_out_at' => $dayOvertime?->check_out_at?->format('H:i:s'),
+                        'overtime_minutes' => $hasOvertime ? (int) $dayOvertime->overtime_minutes : 0,
+                        'overtime_hours' => $hasOvertime ? round($dayOvertime->overtime_minutes / 60, 1) : 0,
                         'overtime_allowance' => $dayOtAllowance,
+                        'overtime_eligible' => $hasOvertime && (bool) $dayOvertime->allowance_eligible,
+                        'overtime_office_name' => $hasOvertime ? ($dayOvertime->office?->name ?? $dayOvertime->actual_office?->name) : null,
+                        'overtime_notes' => $hasOvertime ? $dayOvertime->notes : null,
                         'fine_amount' => 0.00,
                     ];
                     continue;
@@ -218,9 +240,19 @@ class AttendanceRecapService
                         'status' => 'leave',
                         'status_label' => 'Izin: ' . ucfirst($matchingLeave->leave_type),
                         'leave_type' => $matchingLeave->leave_type,
+                        'check_in_at' => null,
+                        'check_out_at' => null,
                         'working_minutes' => 0,
                         'regular_allowance' => 0.00,
+                        'has_overtime' => $hasOvertime,
+                        'overtime_check_in_at' => $dayOvertime?->check_in_at?->format('H:i:s'),
+                        'overtime_check_out_at' => $dayOvertime?->check_out_at?->format('H:i:s'),
+                        'overtime_minutes' => $hasOvertime ? (int) $dayOvertime->overtime_minutes : 0,
+                        'overtime_hours' => $hasOvertime ? round($dayOvertime->overtime_minutes / 60, 1) : 0,
                         'overtime_allowance' => $dayOtAllowance,
+                        'overtime_eligible' => $hasOvertime && (bool) $dayOvertime->allowance_eligible,
+                        'overtime_office_name' => $hasOvertime ? ($dayOvertime->office?->name ?? $dayOvertime->actual_office?->name) : null,
+                        'overtime_notes' => $hasOvertime ? $dayOvertime->notes : null,
                         'fine_amount' => $portionFine,
                     ];
                     continue;
@@ -236,9 +268,19 @@ class AttendanceRecapService
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'alpha',
                         'status_label' => 'Alpha (Tanpa Izin)',
+                        'check_in_at' => null,
+                        'check_out_at' => null,
                         'working_minutes' => 0,
                         'regular_allowance' => 0.00,
+                        'has_overtime' => $hasOvertime,
+                        'overtime_check_in_at' => $dayOvertime?->check_in_at?->format('H:i:s'),
+                        'overtime_check_out_at' => $dayOvertime?->check_out_at?->format('H:i:s'),
+                        'overtime_minutes' => $hasOvertime ? (int) $dayOvertime->overtime_minutes : 0,
+                        'overtime_hours' => $hasOvertime ? round($dayOvertime->overtime_minutes / 60, 1) : 0,
                         'overtime_allowance' => $dayOtAllowance,
+                        'overtime_eligible' => $hasOvertime && (bool) $dayOvertime->allowance_eligible,
+                        'overtime_office_name' => $hasOvertime ? ($dayOvertime->office?->name ?? $dayOvertime->actual_office?->name) : null,
+                        'overtime_notes' => $hasOvertime ? $dayOvertime->notes : null,
                         'fine_amount' => $dailyFineRate,
                     ];
                 } else {
@@ -247,9 +289,19 @@ class AttendanceRecapService
                         'day_name' => $date->translatedFormat('l'),
                         'status' => 'upcoming',
                         'status_label' => 'Belum Berjalan',
+                        'check_in_at' => null,
+                        'check_out_at' => null,
                         'working_minutes' => 0,
                         'regular_allowance' => 0.00,
+                        'has_overtime' => $hasOvertime,
+                        'overtime_check_in_at' => $dayOvertime?->check_in_at?->format('H:i:s'),
+                        'overtime_check_out_at' => $dayOvertime?->check_out_at?->format('H:i:s'),
+                        'overtime_minutes' => $hasOvertime ? (int) $dayOvertime->overtime_minutes : 0,
+                        'overtime_hours' => $hasOvertime ? round($dayOvertime->overtime_minutes / 60, 1) : 0,
                         'overtime_allowance' => $dayOtAllowance,
+                        'overtime_eligible' => $hasOvertime && (bool) $dayOvertime->allowance_eligible,
+                        'overtime_office_name' => $hasOvertime ? ($dayOvertime->office?->name ?? $dayOvertime->actual_office?->name) : null,
+                        'overtime_notes' => $hasOvertime ? $dayOvertime->notes : null,
                         'fine_amount' => 0.00,
                     ];
                 }
@@ -269,6 +321,7 @@ class AttendanceRecapService
                 'office_name' => $office?->name ?? 'Belum Ditugaskan',
                 'working_days' => $workingDays,
                 'present_days' => $presentDays,
+                'overtime_days' => $userOvertimeDays,
                 'late_days' => $userLateDays,
                 'late_minutes' => $userLateMinutes,
                 'leave_days' => $userLeaveDays,
@@ -289,6 +342,7 @@ class AttendanceRecapService
             ];
 
             $grandTotalPresent += $presentDays;
+            $grandTotalOvertimeDays += $userOvertimeDays;
             $grandTotalLateDays += $userLateDays;
             $grandTotalLateMinutes += $userLateMinutes;
             $grandTotalLeaves += $userLeaveDays;
@@ -325,6 +379,7 @@ class AttendanceRecapService
                 'total_staff' => $totalStaff,
                 'working_days' => $workingDays,
                 'total_present' => $grandTotalPresent,
+                'total_overtime_days' => $grandTotalOvertimeDays,
                 'total_late_days' => $grandTotalLateDays,
                 'total_late_minutes' => $grandTotalLateMinutes,
                 'total_leaves' => $grandTotalLeaves,
