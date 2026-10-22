@@ -145,4 +145,45 @@ class AttendanceRecapExportController extends Controller
             fclose($handle);
         }, 200, $headers);
     }
+
+    public function exportStaffPdf(Request $request)
+    {
+        $userId = (int) $request->query('user_id');
+        $user = \App\Models\User::with('office')->findOrFail($userId);
+
+        $startDateStr = $request->query('start_date');
+        $endDateStr = $request->query('end_date');
+
+        if ($startDateStr && $endDateStr) {
+            $startDate = \Carbon\Carbon::parse($startDateStr);
+            $endDate = \Carbon\Carbon::parse($endDateStr);
+            $recap = $this->recapService->getRecapByDateRange($startDate, $endDate, null, $userId);
+        } else {
+            $month = (int) $request->query('month', now()->month);
+            $year = (int) $request->query('year', now()->year);
+            $recap = $this->recapService->getMonthlyRecap($month, $year, null, $userId);
+        }
+
+        $staff = collect($recap['staff_data'])->firstWhere('user_id', $userId);
+        if (!$staff) {
+            abort(404, 'Data presensi staff tidak ditemukan untuk periode ini.');
+        }
+
+        $safeName = \Illuminate\Support\Str::slug($staff['name']);
+        $startFormatted = $recap['period']['start_date'];
+        $endFormatted = $recap['period']['end_date'];
+        $fileName = "rekap-staff-{$safeName}-{$startFormatted}-sd-{$endFormatted}.pdf";
+
+        $pdf = Pdf::loadView('attendance-recap.staff-pdf', [
+            'recap' => $recap,
+            'staff' => $staff,
+            'user' => $user,
+        ])->setPaper('a4', 'portrait');
+
+        if ($request->query('download')) {
+            return $pdf->download($fileName);
+        }
+
+        return $pdf->stream($fileName);
+    }
 }

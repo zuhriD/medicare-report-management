@@ -397,9 +397,17 @@
                                     Rp {{ number_format($staff['net_allowance'], 0, ',', '.') }}
                                 </td>
                                 <td style="text-align: center;">
-                                    <button wire:click="openDetailModal({{ $staff['user_id'] }})" type="button" class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition">
-                                        Detail
-                                    </button>
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        <button wire:click="openDetailModal({{ $staff['user_id'] }})" type="button" class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition" title="Lihat Detail Rincian">
+                                            Detail
+                                        </button>
+                                        <a href="{{ $this->getStaffPdfUrl($staff['user_id']) }}" target="_blank" class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 transition" title="Print PDF Staff">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                            </svg>
+                                            PDF
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -606,7 +614,13 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 flex justify-end">
+                <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 flex items-center justify-between">
+                    <a href="{{ $this->getStaffPdfUrl($selectedStaffDetail['user_id']) }}" target="_blank" class="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                        </svg>
+                        Print PDF Staff
+                    </a>
                     <button wire:click="closeDetailModal" type="button" class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 transition">
                         Tutup
                     </button>

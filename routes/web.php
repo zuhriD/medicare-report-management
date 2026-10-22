@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/weekly-reports/{weeklyReport}', [WeeklyReportController::class, 'show'])->name('weekly-reports.show');
     Route::get('/poa/recap', [PrintPlanOfActionController::class, 'recap'])->name('poa.recap');
     Route::get('/reports/attendance-recap/export', [AttendanceRecapExportController::class, 'export'])->name('attendance-recap.export');
+    Route::get('/reports/attendance-recap/staff-pdf', [AttendanceRecapExportController::class, 'exportStaffPdf'])->name('attendance-recap.staff-pdf');
     Route::get('/reports/daily-attendance-audit/export', [DailyAttendanceAuditExportController::class, 'export'])->name('daily-attendance-audit.export');
     Route::get('/leave-requests/{leaveRequest}/pdf', [LeaveRequestExportController::class, 'exportPdf'])->name('leave-requests.pdf');
     Route::get('/allowance-periods/{allowancePeriod}/export', [\App\Http\Controllers\AllowancePeriodExportController::class, 'export'])->name('allowance-periods.export');

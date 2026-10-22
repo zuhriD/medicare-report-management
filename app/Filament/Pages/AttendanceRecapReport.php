@@ -190,4 +190,16 @@ class AttendanceRecapReport extends Page
             'format' => 'csv',
         ]);
     }
+
+    public function getStaffPdfUrl(int $userId): string
+    {
+        $start = $this->startDate ?: now()->startOfMonth()->toDateString();
+        $end = $this->endDate ?: now()->endOfMonth()->toDateString();
+
+        return route('attendance-recap.staff-pdf', [
+            'start_date' => $start,
+            'end_date' => $end,
+            'user_id' => $userId,
+        ]);
+    }
 }
