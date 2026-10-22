@@ -127,4 +127,24 @@ class MyEarningsTest extends TestCase
         $this->assertEquals(30.00, $earningsData['overtime_allowance_total']);
         $this->assertEquals(80.00, $earningsData['net_earnings']);
     }
+
+    public function test_my_earnings_supports_date_range_filter_and_presets()
+    {
+        $this->actingAs($this->user);
+
+        // 1. Test custom date range
+        $component = Livewire::test(MyEarnings::class)
+            ->set('startDate', '2026-09-01')
+            ->set('endDate', '2026-09-15')
+            ->assertSuccessful()
+            ->assertSee('01 - 15 September 2026');
+
+        $this->assertEquals('2026-09-01', $component->get('startDate'));
+        $this->assertEquals('2026-09-15', $component->get('endDate'));
+
+        // 2. Test preset cutoff 16-15
+        $component->set('periodPreset', 'cutoff_16_15');
+        $this->assertNotEmpty($component->get('startDate'));
+        $this->assertNotEmpty($component->get('endDate'));
+    }
 }

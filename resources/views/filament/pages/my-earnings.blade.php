@@ -107,26 +107,50 @@
                     </div>
                 </div>
 
-                {{-- Month & Year Selector Form Controls --}}
-                <div class="flex items-center gap-2 self-start md:self-auto bg-gray-50 dark:bg-gray-900/80 p-2 rounded-2xl border border-gray-200 dark:border-gray-700/80">
+                {{-- Date Range Selector Form Controls --}}
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 self-start md:self-auto bg-gray-50 dark:bg-gray-900/80 p-2 rounded-2xl border border-gray-200 dark:border-gray-700/80">
                     <div class="flex items-center gap-1.5">
-                        <x-heroicon-o-calendar class="w-4 h-4 text-gray-500 dark:text-gray-400 ml-1" />
+                        <x-heroicon-o-calendar class="w-4 h-4 text-blue-500 shrink-0 ml-1" />
                         <select
-                            wire:model.live="selectedMonth"
+                            wire:model.live="periodPreset"
                             class="text-xs font-bold rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white py-1.5 pl-2.5 pr-7 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer">
-                            @foreach ($this->months as $mNum => $mName)
-                                <option value="{{ $mNum }}">{{ $mName }}</option>
-                            @endforeach
+                            <option value="this_month">Bulan Ini</option>
+                            <option value="last_month">Bulan Lalu</option>
+                            <option value="cutoff_16_15">Cut-Off 16 - 15</option>
+                            <option value="cutoff_21_20">Cut-Off 21 - 20</option>
+                            <option value="custom">Custom Range</option>
                         </select>
                     </div>
 
-                    <select
-                        wire:model.live="selectedYear"
-                        class="text-xs font-bold rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white py-1.5 pl-2.5 pr-7 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer">
-                        @foreach ($this->years as $yVal => $yLabel)
-                            <option value="{{ $yVal }}">{{ $yLabel }}</option>
-                        @endforeach
-                    </select>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">Dari</span>
+                        <input
+                            type="date"
+                            wire:model.live="startDate"
+                            class="text-xs font-bold rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white py-1.5 px-2.5 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">s/d</span>
+                        <input
+                            type="date"
+                            wire:model.live="endDate"
+                            class="text-xs font-bold rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white py-1.5 px-2.5 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Active Date Range Badge Bar --}}
+            <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/60 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 dark:text-gray-400 gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Periode Aktif:</span>
+                    <span class="text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                        {{ $data['period_label'] }}
+                    </span>
+                    <span class="text-gray-400">({{ $data['working_days'] }} Hari Kerja Efektif)</span>
+                </div>
+                <div class="text-[11px]">
+                    Rentang: <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($this->startDate)->format('d/m/Y') }}</span> s/d <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($this->endDate)->format('d/m/Y') }}</span>
                 </div>
             </div>
         </div>
