@@ -181,6 +181,7 @@
             <td>
                 <span class="stats-label">Total Uang Lembur</span>
                 <span class="stats-value">Rp {{ number_format($recap['summary']['total_overtime_allowance'], 0, ',', '.') }}</span>
+                <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">{{ $recap['summary']['total_overtime_days'] }} Hari Lembur</div>
             </td>
             <td>
                 <span class="stats-label">Total Net Allowance</span>
@@ -198,14 +199,15 @@
         <thead>
             <tr>
                 <th style="width: 25px;">No</th>
-                <th class="text-left" style="width: 130px;">Nama Staff</th>
-                <th style="width: 90px;">Kantor</th>
-                <th style="width: 40px;">Hadir</th>
-                <th style="width: 40px;">Izin</th>
-                <th style="width: 40px;">Alpha</th>
+                <th class="text-left" style="width: 125px;">Nama Staff</th>
+                <th style="width: 85px;">Kantor</th>
+                <th style="width: 38px;">Hadir</th>
+                <th style="width: 38px;">Lembur</th>
+                <th style="width: 38px;">Izin</th>
+                <th style="width: 38px;">Alpha</th>
                 <th style="width: 45px;">Rate %</th>
-                <th style="width: 55px;">Jam Kerja</th>
-                <th style="width: 55px;">Jam Lembur</th>
+                <th style="width: 50px;">Jam Kerja</th>
+                <th style="width: 50px;">Jam OT</th>
                 <th class="text-right" style="width: 75px;">Uang Hadir</th>
                 <th class="text-right" style="width: 75px;">Uang Lembur</th>
                 <th class="text-right" style="width: 85px;">Net Allowance</th>
@@ -219,6 +221,7 @@
                     <td class="text-left font-bold">{{ $staff['name'] }}</td>
                     <td><span class="badge badge-office">{{ $staff['office_name'] }}</span></td>
                     <td>{{ $staff['present_days'] }}</td>
+                    <td class="font-bold">{{ $staff['overtime_days'] }}</td>
                     <td>{{ $staff['leave_days'] }}</td>
                     <td>{{ $staff['alpha_days'] }}</td>
                     <td class="font-bold">{{ $staff['attendance_rate'] }}%</td>
@@ -235,7 +238,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="13" style="text-align: center; padding: 15px; color: #64748b;">
+                    <td colspan="14" style="text-align: center; padding: 15px; color: #64748b;">
                         Tidak ada data presensi staff untuk periode ini.
                     </td>
                 </tr>
@@ -245,6 +248,7 @@
             <tr style="background-color: #f1f5f9; font-weight: bold;">
                 <td colspan="3" class="text-left font-bold">TOTAL KESELURUHAN</td>
                 <td>{{ $recap['summary']['total_present'] }}</td>
+                <td>{{ $recap['summary']['total_overtime_days'] }}</td>
                 <td>{{ $recap['summary']['total_leaves'] }}</td>
                 <td>{{ $recap['summary']['total_alpha'] }}</td>
                 <td>{{ $recap['summary']['average_attendance_rate'] }}%</td>

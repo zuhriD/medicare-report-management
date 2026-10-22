@@ -149,6 +149,7 @@ class AttendanceRecapServiceTest extends TestCase
         $staffRecap = $recap['staff_data'][0];
         $this->assertEquals('Staff Malang', $staffRecap['name']);
         $this->assertEquals(1, $staffRecap['present_days']);
+        $this->assertEquals(1, $staffRecap['overtime_days']);
         $this->assertEquals(3, $staffRecap['leave_days']);
         $this->assertEquals(15000.00, $staffRecap['regular_allowance']);
         $this->assertEquals(20000.00, $staffRecap['overtime_allowance']);
@@ -156,6 +157,9 @@ class AttendanceRecapServiceTest extends TestCase
         $this->assertEquals(35000.00, $staffRecap['net_allowance']);
         $this->assertEquals(50000.00, $staffRecap['leave_fine']);
         $this->assertGreaterThan(0, $staffRecap['total_fine']);
+        $this->assertEquals(1, $recap['summary']['total_overtime_days']);
+        $this->assertTrue($staffRecap['daily_breakdown']['2026-08-03']['has_overtime']);
+        $this->assertEquals(180, $staffRecap['daily_breakdown']['2026-08-03']['overtime_minutes']);
     }
 
     public function test_get_recap_by_date_range_calculates_cutoff_period_properly()

@@ -298,7 +298,7 @@
             <div class="recap-stat-card">
                 <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uang Lembur</div>
                 <div class="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400">Rp {{ number_format($summary['total_overtime_allowance'], 0, ',', '.') }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">{{ $summary['total_overtime_hours'] }} jam lembur</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ $summary['total_overtime_days'] }} hari lembur</div>
             </div>
 
             <div class="recap-stat-card">
@@ -332,6 +332,7 @@
                             <th>Staff</th>
                             <th>Kantor</th>
                             <th style="text-align: center;">Hadir</th>
+                            <th style="text-align: center;">Hari OT</th>
                             <th style="text-align: center;">Izin</th>
                             <th style="text-align: center;">Alpha</th>
                             <th style="text-align: center;">Kehadiran</th>
@@ -359,6 +360,15 @@
                                 <td style="text-align: center; font-weight: 600;" class="text-gray-800 dark:text-gray-200">
                                     {{ $staff['present_days'] }}
                                 </td>
+                                <td style="text-align: center; font-weight: 600;">
+                                    @if ($staff['overtime_days'] > 0)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold recap-badge-amber">
+                                            {{ $staff['overtime_days'] }} hari
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">0</span>
+                                    @endif
+                                </td>
                                 <td style="text-align: center; font-weight: 600;" class="text-amber-600 dark:text-amber-400">
                                     {{ $staff['leave_days'] }}
                                 </td>
@@ -371,13 +381,13 @@
                                 <td style="text-align: right;" class="text-gray-600 dark:text-gray-400">
                                     {{ $staff['working_hours'] }}h
                                 </td>
-                                <td style="text-align: right;" class="text-gray-600 dark:text-gray-400">
+                                <td style="text-align: right;" class="{{ $staff['overtime_hours'] > 0 ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-gray-400' }}">
                                     {{ $staff['overtime_hours'] }}h
                                 </td>
                                 <td style="text-align: right; font-weight: 600;" class="text-gray-900 dark:text-gray-200">
                                     Rp {{ number_format($staff['regular_allowance'], 0, ',', '.') }}
                                 </td>
-                                <td style="text-align: right; font-weight: 600;" class="text-gray-900 dark:text-gray-200">
+                                <td style="text-align: right; font-weight: 600;" class="{{ $staff['overtime_allowance'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">
                                     Rp {{ number_format($staff['overtime_allowance'], 0, ',', '.') }}
                                 </td>
                                 <td style="text-align: right; font-weight: 600;" class="{{ $staff['total_fine'] > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400' }}">
@@ -394,7 +404,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="13" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                <td colspan="14" style="text-align: center; padding: 2rem; color: #94a3b8;">
                                     Tidak ada data presensi staff untuk filter periode ini.
                                 </td>
                             </tr>
@@ -404,13 +414,14 @@
                         <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;" class="dark:bg-gray-800 text-xs text-gray-900 dark:text-white">
                             <td colspan="2" style="text-transform: uppercase;">Total Keseluruhan</td>
                             <td style="text-align: center;">{{ $summary['total_present'] }}</td>
+                            <td style="text-align: center;" class="text-amber-600 dark:text-amber-400">{{ $summary['total_overtime_days'] }}</td>
                             <td style="text-align: center;">{{ $summary['total_leaves'] }}</td>
                             <td style="text-align: center;">{{ $summary['total_alpha'] }}</td>
                             <td style="text-align: center;">{{ $summary['average_attendance_rate'] }}%</td>
                             <td style="text-align: right;">{{ $summary['total_working_hours'] }}h</td>
-                            <td style="text-align: right;">{{ $summary['total_overtime_hours'] }}h</td>
+                            <td style="text-align: right;" class="text-amber-600 dark:text-amber-400">{{ $summary['total_overtime_hours'] }}h</td>
                             <td style="text-align: right;">Rp {{ number_format($summary['total_regular_allowance'], 0, ',', '.') }}</td>
-                            <td style="text-align: right;">Rp {{ number_format($summary['total_overtime_allowance'], 0, ',', '.') }}</td>
+                            <td style="text-align: right;" class="text-amber-600 dark:text-amber-400">Rp {{ number_format($summary['total_overtime_allowance'], 0, ',', '.') }}</td>
                             <td style="text-align: right;" class="text-rose-600 dark:text-rose-400">Rp {{ number_format($summary['total_fine'], 0, ',', '.') }}</td>
                             <td style="text-align: right; font-size: 0.9375rem;" class="text-emerald-600 dark:text-emerald-400">
                                 Rp {{ number_format($summary['total_net_allowance'], 0, ',', '.') }}
@@ -426,7 +437,7 @@
     <!-- Modal Drilldown Detail Harian Staff -->
     @if ($showDetailModal && $selectedStaffDetail)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl border border-gray-200 dark:border-gray-700 overflow-hidden my-8">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-5xl border border-gray-200 dark:border-gray-700 overflow-hidden my-8">
                 <!-- Modal Header -->
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/70 dark:bg-gray-750">
                     <div>
@@ -447,10 +458,15 @@
                 <!-- Modal Body -->
                 <div class="p-6 max-h-[65vh] overflow-y-auto space-y-4">
                     <!-- Quick Stats Bar -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <div class="p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
                             <div class="text-xs text-gray-500 uppercase">Hadir</div>
                             <div class="font-bold text-base text-gray-900 dark:text-white">{{ $selectedStaffDetail['present_days'] }} / {{ $selectedStaffDetail['working_days'] }} Hari</div>
+                        </div>
+                        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg border border-amber-200 dark:border-amber-800 text-center">
+                            <div class="text-xs text-amber-700 dark:text-amber-400 uppercase font-semibold">Total Lembur</div>
+                            <div class="font-bold text-base text-amber-600 dark:text-amber-400">{{ $selectedStaffDetail['overtime_days'] }} Hari ({{ $selectedStaffDetail['overtime_hours'] }} Jam)</div>
+                            <div class="text-[11px] text-amber-700/80 dark:text-amber-300 mt-0.5">Rp {{ number_format($selectedStaffDetail['overtime_allowance'], 0, ',', '.') }}</div>
                         </div>
                         <div class="p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
                             <div class="text-xs text-gray-500 uppercase">Durasi Kerja</div>
@@ -474,48 +490,88 @@
                                 <th>Status</th>
                                 <th>Waktu Masuk & Pulang</th>
                                 <th style="text-align: right;">Durasi Kerja</th>
+                                <th>Detail Lembur</th>
                                 <th style="text-align: right;">Uang Hadir</th>
+                                <th style="text-align: right;">Uang Lembur</th>
                                 <th style="text-align: right;">Denda</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($selectedStaffDetail['daily_breakdown'] as $dateStr => $day)
-                                <tr class="{{ $day['status'] === 'holiday' ? 'opacity-60 bg-gray-50/50 dark:bg-gray-800/50' : '' }}">
+                                <tr class="{{ $day['status'] === 'holiday' ? 'opacity-70 bg-gray-50/50 dark:bg-gray-800/50' : '' }}">
                                     <td class="font-semibold text-gray-900 dark:text-white">
                                         {{ \Carbon\Carbon::parse($day['date'])->format('d M Y') }}
-                                        <span class="text-gray-400 text-[11px] font-normal">({{ $day['day_name'] }})</span>
+                                        <span class="text-gray-400 text-[11px] font-normal block sm:inline">({{ $day['day_name'] }})</span>
                                     </td>
                                     <td>
-                                        @if ($day['status'] === 'present')
-                                            <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-emerald">
-                                                Hadir
-                                            </span>
-                                        @elseif ($day['status'] === 'leave')
-                                            <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-amber">
-                                                {{ $day['status_label'] }}
-                                            </span>
-                                        @elseif ($day['status'] === 'alpha')
-                                            <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-rose">
-                                                Alpha
-                                            </span>
-                                        @else
-                                            <span class="px-2 py-0.5 rounded text-[11px] text-gray-500">
-                                                Libur
-                                            </span>
-                                        @endif
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            @if ($day['status'] === 'present')
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-emerald">
+                                                    Hadir
+                                                </span>
+                                            @elseif ($day['status'] === 'leave')
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-amber">
+                                                    {{ $day['status_label'] }}
+                                                </span>
+                                            @elseif ($day['status'] === 'alpha')
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold recap-badge-rose">
+                                                    Alpha
+                                                </span>
+                                            @else
+                                                <span class="px-2 py-0.5 rounded text-[11px] text-gray-500">
+                                                    Libur
+                                                </span>
+                                            @endif
+
+                                            @if (!empty($day['has_overtime']))
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold recap-badge-amber">
+                                                    OT
+                                                </span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="text-gray-600 dark:text-gray-400">
                                         @if (!empty($day['check_in_at']))
                                             {{ $day['check_in_at'] }} - {{ $day['check_out_at'] ?? 'Belum Pulang' }}
                                         @else
-                                            -
+                                            <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
                                     <td style="text-align: right;" class="text-gray-700 dark:text-gray-300">
                                         {{ $day['working_minutes'] > 0 ? round($day['working_minutes'] / 60, 1) . ' jam' : '-' }}
                                     </td>
+                                    <td>
+                                        @if (!empty($day['has_overtime']))
+                                            <div class="space-y-0.5">
+                                                <div class="font-semibold text-gray-900 dark:text-white">
+                                                    {{ $day['overtime_check_in_at'] ?? '-' }} - {{ $day['overtime_check_out_at'] ?? 'Belum Pulang' }}
+                                                </div>
+                                                <div class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                                    {{ $day['overtime_hours'] }} jam ({{ $day['overtime_minutes'] }}m)
+                                                    @if (!empty($day['overtime_eligible']))
+                                                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold ml-1">✓ Memenuhi</span>
+                                                    @endif
+                                                </div>
+                                                @if (!empty($day['overtime_office_name']) && $day['overtime_office_name'] !== $selectedStaffDetail['office_name'])
+                                                    <div class="text-[10px] text-sky-600 dark:text-sky-400">
+                                                        Kantor: {{ $day['overtime_office_name'] }}
+                                                    </div>
+                                                @endif
+                                                @if (!empty($day['overtime_notes']))
+                                                    <div class="text-[10px] text-gray-400 italic">
+                                                        "{{ \Illuminate\Support\Str::limit($day['overtime_notes'], 35) }}"
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
                                     <td style="text-align: right; font-weight: 600;" class="text-gray-900 dark:text-white">
                                         {{ $day['regular_allowance'] > 0 ? 'Rp ' . number_format($day['regular_allowance'], 0, ',', '.') : '-' }}
+                                    </td>
+                                    <td style="text-align: right; font-weight: 600;" class="{{ $day['overtime_allowance'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400' }}">
+                                        {{ $day['overtime_allowance'] > 0 ? 'Rp ' . number_format($day['overtime_allowance'], 0, ',', '.') : '-' }}
                                     </td>
                                     <td style="text-align: right; font-weight: 600;" class="{{ $day['fine_amount'] > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400' }}">
                                         {{ $day['fine_amount'] > 0 ? 'Rp ' . number_format($day['fine_amount'], 0, ',', '.') : '-' }}
@@ -523,6 +579,29 @@
                                 </tr>
                             @endforeach
                         </tbody>
+                        <tfoot>
+                            <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;" class="dark:bg-gray-800 text-xs text-gray-900 dark:text-white">
+                                <td colspan="4" style="text-transform: uppercase;">Total Staff</td>
+                                <td>
+                                    @if ($selectedStaffDetail['overtime_days'] > 0)
+                                        <span class="text-amber-600 dark:text-amber-400 font-bold">
+                                            {{ $selectedStaffDetail['overtime_days'] }} hari ({{ $selectedStaffDetail['overtime_hours'] }}h)
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td style="text-align: right;">
+                                    Rp {{ number_format($selectedStaffDetail['regular_allowance'], 0, ',', '.') }}
+                                </td>
+                                <td style="text-align: right;" class="text-amber-600 dark:text-amber-400">
+                                    Rp {{ number_format($selectedStaffDetail['overtime_allowance'], 0, ',', '.') }}
+                                </td>
+                                <td style="text-align: right;" class="text-rose-600 dark:text-rose-400">
+                                    Rp {{ number_format($selectedStaffDetail['total_fine'], 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
