@@ -30,14 +30,69 @@ class MyEarnings extends Page
 
     protected static string $view = 'filament.pages.my-earnings';
 
-    public int $selectedMonth;
-    public int $selectedYear;
+    public string $startDate = '';
+    public string $endDate = '';
+    public string $periodPreset = 'this_month'; // 'this_month', 'last_month', 'cutoff_16_15', 'cutoff_21_20', 'custom'
+    public ?int $selectedMonth = null;
+    public ?int $selectedYear = null;
     public string $activeTab = 'summary'; // 'summary', 'attendances', 'overtimes', 'leaves_fines'
 
     public function mount(): void
     {
-        $this->selectedMonth = (int) now()->format('n');
-        $this->selectedYear = (int) now()->format('Y');
+        $this->startDate = now()->startOfMonth()->toDateString();
+        $this->endDate = now()->endOfMonth()->toDateString();
+        $this->selectedMonth = (int) now()->month;
+        $this->selectedYear = (int) now()->year;
+    }
+
+    public function updatedPeriodPreset(): void
+    {
+        $today = now();
+        if ($this->periodPreset === 'this_month') {
+            $this->startDate = $today->copy()->startOfMonth()->toDateString();
+            $this->endDate = $today->copy()->endOfMonth()->toDateString();
+        } elseif ($this->periodPreset === 'last_month') {
+            $this->startDate = $today->copy()->subMonth()->startOfMonth()->toDateString();
+            $this->endDate = $today->copy()->subMonth()->endOfMonth()->toDateString();
+        } elseif ($this->periodPreset === 'cutoff_16_15') {
+            $end = Carbon::create($today->year, $today->month, 15);
+            $start = $end->copy()->subMonth()->day(16);
+            $this->startDate = $start->toDateString();
+            $this->endDate = $end->toDateString();
+        } elseif ($this->periodPreset === 'cutoff_21_20') {
+            $end = Carbon::create($today->year, $today->month, 20);
+            $start = $end->copy()->subMonth()->day(21);
+            $this->startDate = $start->toDateString();
+            $this->endDate = $end->toDateString();
+        }
+    }
+
+    public function updatedStartDate(): void
+    {
+        $this->periodPreset = 'custom';
+    }
+
+    public function updatedEndDate(): void
+    {
+        $this->periodPreset = 'custom';
+    }
+
+    public function updatedSelectedMonth(): void
+    {
+        if ($this->selectedMonth && $this->selectedYear) {
+            $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfDay()->toDateString();
+            $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->toDateString();
+            $this->periodPreset = 'custom';
+        }
+    }
+
+    public function updatedSelectedYear(): void
+    {
+        if ($this->selectedMonth && $this->selectedYear) {
+            $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfDay()->toDateString();
+            $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->toDateString();
+            $this->periodPreset = 'custom';
+        }
     }
 
     public function getUserProperty(): ?User
@@ -98,14 +153,26 @@ class MyEarnings extends Page
             return [];
         }
 
-        $startDate = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->startOfDay();
-        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+        if ($this->startDate && $this->endDate) {
+            $startDate = Carbon::parse($this->startDate)->startOfDay();
+            $endDate = Carbon::parse($this->endDate)->endOfDay();
+        } elseif ($this->selectedMonth && $this->selectedYear) {
+            $startDate = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->startOfDay();
+            $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+        } else {
+            $startDate = now()->startOfMonth()->startOfDay();
+            $endDate = now()->endOfMonth()->endOfDay();
+        }
+
+        if ($endDate->lt($startDate)) {
+            $endDate = $startDate->copy()->endOfDay();
+        }
 
         $office = $this->office;
         $fineService = app(AttendanceFineService::class);
         $calcService = app(AttendanceCalculationService::class);
 
-        // 1. Total working days in selected month
+        // 1. Total working days in selected range
         $workingDays = $fineService->calculateWorkingDays($startDate, $endDate, $office?->id);
 
         // 2. Fetch attendances in period
@@ -165,8 +232,18 @@ class MyEarnings extends Page
         // Currency label based on office
         $currency = ($office && str_contains(strtolower($office->timezone ?? ''), 'kuala_lumpur')) ? 'RM' : 'Rp';
 
+        if ($startDate->isSameMonth($endDate) && $startDate->day === 1 && $startDate->copy()->endOfMonth()->isSameDay($endDate)) {
+            $periodLabel = $startDate->translatedFormat('F Y');
+        } elseif ($startDate->isSameDay($endDate)) {
+            $periodLabel = $startDate->translatedFormat('d F Y');
+        } elseif ($startDate->isSameMonth($endDate)) {
+            $periodLabel = $startDate->format('d') . ' - ' . $endDate->translatedFormat('d F Y');
+        } else {
+            $periodLabel = $startDate->translatedFormat('d M Y') . ' - ' . $endDate->translatedFormat('d M Y');
+        }
+
         return [
-            'period_label' => $this->months[$this->selectedMonth] . ' ' . $this->selectedYear,
+            'period_label' => $periodLabel,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'currency' => $currency,
