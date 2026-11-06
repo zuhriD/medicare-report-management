@@ -38,6 +38,13 @@ class AttendanceRecapReport extends Page
     public ?array $selectedStaffDetail = null;
     public bool $showDetailModal = false;
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \App\Filament\Actions\BulkBackfillAttendanceAction::make(),
+        ];
+    }
+
     public function mount(): void
     {
         $this->selectedMonth = (int) now()->month;
