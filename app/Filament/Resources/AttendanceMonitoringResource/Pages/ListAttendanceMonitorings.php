@@ -11,6 +11,8 @@ class ListAttendanceMonitorings extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            \App\Filament\Actions\BulkBackfillAttendanceAction::make(),
+        ];
     }
 }
